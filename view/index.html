@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+
+<html lang='en'>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Canvas Extended Applications</title>
+    <script src="https://code.jquery.com/jquery-3.6.3.js" integrity="sha256-nQLuAZGRRcILA+6dMBOvcRh5Pe310sBpanc6+QBmyVM=" crossorigin="anonymous">      
+    </script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"      
+    />
+    <!--<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous"> -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous"/>
+    <link rel="stylesheet" href="//use.fontawesome.com/releases/v5.0.7/css/all.css">
+    <link rel='icon' href='favicon.png' type='image/x-icon' />
+  </head>
+  <body>
+    <main>
+      <div id='primary' class='container-fluid'>
+        <form action='/profile' method='post' class='form-horizontal'>
+          <fieldse>
+            <legend><img src='favicon.png' width='50' height='50'>
+              Retrieve your profile
+              <p style='font-size: .6rem; vertical-align: text-bottom'><a target="_blank" href="https://icons8.com/icon/nLEIdx9PP9JD/instructure">Instructure</a> icon by <a target="_blank" href="https://icons8.com">Icons8</a></p>
+            </legend>
+            
+            <label for='token' style='display: inline-block; padding-right: 10px'>Access Token:</label>
+            <input id='token' name='token' type='password' style='width: 70vw' required>
+            <br>
+            <label style='display: inline-block; text-align: right; vertical-align: text-top; margin-right: 10px; width: 98px' >Environment: </label>
+            <div style="display: inline-block">
+              <label for='production' class='radio-inline'><input id='production' class='envir' name='envir' type='radio' value = 'production' required> Production</label>
+              <label for='beta' class='radio-inline'><input id='beta' class='envir' name='envir' type='radio' value = 'beta' required> Beta</label>
+              <label for='test' class='radio-inline'><input id='test' class='envir' name='envir' type='radio' value = 'test' required> Test</label>
+            </div>
+            
+            <div class='text-center'>            
+              <button type='submit' class='btn btn-primary btn-block' style='margin-top: 10px'><i class="fas fa-paper-plane"></i> Submit</button>
+            </div>
+          </fieldset>
+        </form>        
+      </div>
+    </main>
+    <script>      
+      $(document).ready(function() {
+        fetch('/pass',{
+          method: "POST"
+        }).then(token => token.json())
+          .then(token => $("#token").val(token));
+
+        if (localStorage.getItem('checked')) {
+          $('#'+ localStorage.getItem('checked')).attr('checked',true);
+        } else {
+          $('#test').attr('checked',true);
+        }
+        localStorage.removeItem('checked');
+        
+        $('form').on('submit', (e) => {
+          e.preventDefault();
+          for(let input of $('.envir')) {
+            if(input.checked) {
+              localStorage.setItem('checked', $(input).attr('id'));
+            }            
+          }
+          $('#primary').addClass('animate__animated animate__slideOutLeft');
+          
+          $('#primary')
+            .on('animationend', (e) =>
+              e.target.firstElementChild.submit()
+               );
+        });
+      })
+    </script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN" crossorigin="anonymous"></script> -->
+  </body>
+</html>
