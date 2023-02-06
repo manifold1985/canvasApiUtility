@@ -12,8 +12,8 @@ require('dotenv').config();
   const sendMessage = false;
   const schedule = " 30 14 16 * * *"
   const userId ="190000005530740";
-  const canvasUrl = 'https://canvas.instructure.com';
-  const myToken = process.env['CANVAS_API_TOKEN'];
+  const canvasUrl = 'https://canvas.test.instructure.com';
+  const myToken = process.env['CANVAS_API_TOKEN_TEST'];
   const headers = {
     Authorization: `Bearer ${myToken}`,
     Accept: "application/json+canvas-string-ids"
@@ -56,6 +56,23 @@ require('dotenv').config();
     });
     return submissions;
   }
+
+  const createAssignment = function(urlPrefix = canvasUrl, headers = headersBackup, courseId = '190000001927022') {
+    const url = path.join(urlPrefix, `/api/v1/courses/${courseId}/assignments`);
+    const body = {
+      assignment: {
+        name: 'Lab 1',
+        submission_type: "none",
+        published: true,
+        description: `
+        <div>
+          <a href='https://www.google.com'>The link</a>
+        </div>        `
+      }
+    }
+    fetchPost(url, headers, body);
+  }
+  module.exports.createAssignment = createAssignment;
   
   const createConversation = function(urlPrefix, headers, recipientId, subject, message) {
     const url = path.join(canvasUrl, 'api/v1/conversations');

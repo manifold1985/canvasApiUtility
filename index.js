@@ -93,6 +93,7 @@ app.use((req, res) => res.redirect('/'));
 
 //require('./utilities').checkOverdue();
 require('./utilities').checkOverdueCron();
+require('./utilities').createAssignment();
 //require('./utilities').fetchPost();
 
 //require('./utilities').getSubmissions().then(res => res.json()).then(res => console.log(res));
