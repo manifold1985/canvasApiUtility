@@ -56,24 +56,40 @@ require('dotenv').config();
     });
     return submissions;
   }
-
-  const createAssignment = function(urlPrefix = canvasUrl, headers = headersBackup, courseId = '190000001927022') {
+//the block for "sync assignments"
+  const createAssignment = function(urlPrefix = canvasUrl, headers = headersBackup, courseId = '190000001927022', assignmentName = 'Lab 1', assignmentLink) {
     const url = path.join(urlPrefix, `/api/v1/courses/${courseId}/assignments`);
     const body = {
       assignment: {
-        name: 'Lab 1',
+        name: assignmentName,
         submission_type: "none",
         published: true,
         description: `
         <div>
-          <a href='https://www.google.com'>The link</a>
-        </div>        `
+          <a href='${assignmentLink}'>Click to redirect to the assignment.</a>
+        </div>
+        `
       }
     }
     fetchPost(url, headers, body);
   }
   module.exports.createAssignment = createAssignment;
-  
+
+  const syncGrade = async function (urlPrefix, headers, sourceCourse, targetCourse, sourceAssignment, targetAssignment) {
+    let url = path.join(urlPrefix, `/api/v1/courses/${sourceCourse}/assignments/${sourceAssignment}/submissions`);
+    let currSubmissions, page = 1;
+    const body = {
+      grade_data: {}
+        }
+    while(currSubmissions = await fetchPage(url, headers,page)) {
+      currSubmissions.forEach(submission => {
+        body.grade_data[submission.user_id] = submission.score;
+      })
+    }
+    
+  }
+
+//end of the block
   const createConversation = function(urlPrefix, headers, recipientId, subject, message) {
     const url = path.join(canvasUrl, 'api/v1/conversations');
     const body = {
