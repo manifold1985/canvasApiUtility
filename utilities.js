@@ -6,8 +6,8 @@ const path = require('path');
 const cron = require('node-cron');
 const fetch = require('@replit/node-fetch');
 //const fetch = require('node-fetch');
-const canvasUrl = 'https://canvas.test.instructure.com';
-const myToken = process.env['CANVAS_API_TOKEN_TEST'];
+const canvasUrl = 'https://canvas.instructure.com';
+const myToken = process.env['CANVAS_API_TOKEN'];
 const headers = {
   Authorization: `Bearer ${myToken}`,
   Accept: "application/json+canvas-string-ids"
@@ -16,7 +16,7 @@ const headersBackup = headers; //delete
 //This block tests utilities
 {
   const sendMessage = false;
-  const schedule = " 30 14 16 * * *"
+  const schedule = "20 57 2 * * *";
   const userId = "190000005530740";
   let url = path.join(canvasUrl, 'api/v1/conversations');
 
@@ -29,6 +29,14 @@ const headersBackup = headers; //delete
     force_new: true
   }
 
+  function getProgress(urlPrefix='canvasUrl', id) {
+    fetch(canvasUrl + `/api/v1/progress/${id}`, {
+      method: "GET",
+      headers: headers
+    }).then(res => res.json()).then(res => console.log(res));
+  }
+  module.exports.getProgress = getProgress;
+
   async function fetchPost(url, headers, body) {
     const headersPost = Object.assign({ 'Content-type': 'application/json' }, headers);
     let response = await fetch(url, {
@@ -36,12 +44,12 @@ const headersBackup = headers; //delete
       body: JSON.stringify(body),
       headers: headersPost
     })
-      if (!response.ok) {
-        console.log(body);
-        console.log(res.statusText);
-        return;
-      }
-      console.log('X-Rate-Limit-Remaining:', response.headers.get('X-Rate-Limit-Remaining'));
+    if (!response.ok) {
+      console.log(body);
+      console.log(response.statusText);
+      return;
+    }
+    console.log('X-Rate-Limit-Remaining:', response.headers.get('X-Rate-Limit-Remaining'));
     response = await response.json();
     return response;
   }
@@ -56,13 +64,14 @@ const headersBackup = headers; //delete
     return submissions;
   }
   //the block for "sync assignments"
-  const createAssignment = async function(urlPrefix = canvasUrl, headers = headersBackup, courseId = '190000001927022', assignmentName = 'Lab 1', assignmentLink) {
+  const createAssignment = async function(urlPrefix = canvasUrl, headers = headersBackup, courseId = '190000001927022', assignmentName = 'Lab 1', assignmentLink, assignmentPoints) {
     const url = path.join(urlPrefix, `/api/v1/courses/${courseId}/assignments`);
     const body = {
       assignment: {
         name: assignmentName,
         submission_type: "none",
         published: true,
+        points_possible: assignmentPoints,
         description: `
         <div>
           <a href='${assignmentLink}'>Click to redirect to the assignment</a>.
@@ -81,8 +90,10 @@ const headersBackup = headers; //delete
     return response;
   }
 
-  const postGrades = async function(urlPrefix, headers, courseId, assignmentId, data) {
-    
+  const postGrades = async function(urlPrefix, headers, courseId, assignmentId, body) {
+    const url = path.join(urlPrefix, `api/v1/courses/${courseId}/assignments/${assignmentId}/submissions/update_grades`);
+    const response = await fetchPost(url, headers, body);
+    return response;
   }
 
   const syncGrades = async function(urlPrefix = canvasUrl, headers = headersBackup, sourceCourse = '190000001927027', targetCourse = '190000001927022') {//delete the default arguments
@@ -90,16 +101,17 @@ const headersBackup = headers; //delete
     let page = 1;
     while (currAssignments = await getAssignments(urlPrefix, headers, sourceCourse, page)) {
       for (let i = 0; i < currAssignments.length; i++) {
-        const { id: sourceAssignment, name: assignmentName, html_url: assignmentLink } = currAssignments[i];
-        console.log(sourceAssignment, assignmentName, assignmentLink);
-        let url = path.join(urlPrefix, `/api/v1/courses/${sourceCourse}/assignments/${sourceAssignment}/submissions`);
+        const {id: sourceAssignment, name: assignmentName, html_url: assignmentLink, points_possible: assignmentPoints} = currAssignments[i];
+        let url = path.join(urlPrefix, `/api/v1/courses/${sourceCourse}/assignments/${sourceAssignment}/submissions?include[]=user`);
         let currSubmissions, page = 1;
         const body = {
           grade_data: {}
         }
         while (currSubmissions = await fetchPage(url, headers, page)) {
           currSubmissions.forEach(submission => {
-            body.grade_data[submission.user_id] = submission.score;
+            if (submission.user.name != 'Test Student') {
+              body.grade_data[submission.user_id] = typeof submission.score == 'number' ? { posted_grade: submission.score.toString() } : { posted_grade: '0' }
+            }
           })
           page++;
         }
@@ -109,13 +121,17 @@ const headersBackup = headers; //delete
         if (targetAssignment.ok) {
           targetAssignment = await targetAssignment.json();
           if (targetAssignment.length == 0) {
-            targetAssignment = await createAssignment(urlPrefix, headers, targetCourse, assignmentName, assignmentLink);
+            targetAssignment = await createAssignment(urlPrefix, headers, targetCourse, assignmentName, assignmentLink, assignmentPoints);
             console.log("Assignment created: ", targetAssignment);
           }
           else {
-            targetAssignment = targetAssignment.id;
+            targetAssignment = targetAssignment[0].id;
             console.log('Assignment found: ', targetAssignment);
           }
+          let progress = await postGrades(urlPrefix, headers, targetCourse, targetAssignment, body);
+          setTimeout(function() {
+            getProgress(urlPrefix,progress.id);
+          }, 5000);
         }
         else {
           console.log(targetAssignment.statusText);
@@ -127,7 +143,7 @@ const headersBackup = headers; //delete
   module.exports.syncGrades = syncGrades;
   //end of the block
 
-  const createConversation = async function(urlPrefix, headers, recipientId, subject, message) {
+  const createConversation = function(urlPrefix, headers, recipientId, subject, message) {
     const url = path.join(canvasUrl, 'api/v1/conversations');
     const body = {
       recipients: [recipientId],
@@ -135,7 +151,7 @@ const headersBackup = headers; //delete
       body: message//,
       //force_new: true
     }
-    await fetchPost(url, headers, body);
+    fetchPost(url, headers, body);
   }
   /*  
     const getProfile = async function () {
@@ -149,7 +165,6 @@ const headersBackup = headers; //delete
   */
   //190000001883402 190000001927022
   const checkOverdue = async (sendMessage, courseId = courses[0], urlPrefix = canvasUrl, headers = headersBackup) => {//take away the "sendMessage" switch
-
     const now = new Date();
     const users = new Map();
     const url = path.join(urlPrefix, `/api/v1/courses/${courseId}/assignments?include[]=all_dates`);
@@ -221,6 +236,7 @@ const headersBackup = headers; //delete
 
   module.exports.checkOverdueCron = function() {
     const job = cron.schedule(schedule, function() {//remove the "schedule" & use the selected time of the user
+      console.log('Scheduling checkOverdueCron. sendMessage: ', sendMessage);      
       for (let i = 0; i < courses.length; i++)
         checkOverdue(sendMessage, courses[i]);
     }, {

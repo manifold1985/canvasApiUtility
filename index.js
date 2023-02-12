@@ -92,9 +92,10 @@ app.route('/pass').post((req, res) => res.json(process.env['CANVAS_API_TOKEN_TES
 app.use((req, res) => res.redirect('/'));
 
 //require('./utilities').getCourses().then(res => console.log(res));
-//require('./utilities').checkOverdue();
+//require('./utilities').checkOverdue(false, "190000001927022");
 //require('./utilities').checkOverdueCron();
 //require('./utilities').createAssignment();
 //require('./utilities').fetchPost();
 //require('./utilities').getSubmissions().then(res => res.json()).then(res => console.log(res));
-require('./utilities').syncGrades();
+//require('./utilities').syncGrades();
+//require('./utilities').getProgress();
