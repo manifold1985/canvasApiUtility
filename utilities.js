@@ -64,7 +64,7 @@ const headersBackup = headers; //delete
     return submissions;
   }
   //the block for "sync assignments"
-  const createAssignment = async function(urlPrefix = canvasUrl, headers = headersBackup, courseId = '190000001927022', assignmentName = 'Lab 1', assignmentLink, assignmentPoints) {
+  const createAssignment = async function(urlPrefix = canvasUrl, headers = headersBackup, courseId = '190000001927022', assignmentName = 'Lab 1', assignmentLink, assignmentPoints, assignmentDueAt, assignmentLockAt) {
     const url = path.join(urlPrefix, `/api/v1/courses/${courseId}/assignments`);
     const body = {
       assignment: {
@@ -72,9 +72,11 @@ const headersBackup = headers; //delete
         submission_type: "none",
         published: true,
         points_possible: assignmentPoints,
+        due_at: assignmentDueAt,
+        lock_at: assignmentLockAt,
         description: `
         <div>
-          <a href='${assignmentLink}'>Click to redirect to the assignment</a>.
+          <a href='${assignmentLink}' target="_blank" rel="noopener" title="${assignmentName}" >Click to redirect to the assignment</a>.
         </div>
         `
       }
@@ -101,7 +103,14 @@ const headersBackup = headers; //delete
     let page = 1;
     while (currAssignments = await getAssignments(urlPrefix, headers, sourceCourse, page)) {
       for (let i = 0; i < currAssignments.length; i++) {
-        const {id: sourceAssignment, name: assignmentName, html_url: assignmentLink, points_possible: assignmentPoints} = currAssignments[i];
+        const {
+          id: sourceAssignment,
+          name: assignmentName,
+          html_url: assignmentLink,
+          points_possible: assignmentPoints,
+          due_at: assignmentDueAt,
+          lock_at: assignmentLockAt,
+        } = currAssignments[i];
         let url = path.join(urlPrefix, `/api/v1/courses/${sourceCourse}/assignments/${sourceAssignment}/submissions?include[]=user`);
         let currSubmissions, page = 1;
         const body = {
@@ -121,7 +130,7 @@ const headersBackup = headers; //delete
         if (targetAssignment.ok) {
           targetAssignment = await targetAssignment.json();
           if (targetAssignment.length == 0) {
-            targetAssignment = await createAssignment(urlPrefix, headers, targetCourse, assignmentName, assignmentLink, assignmentPoints);
+            targetAssignment = await createAssignment(urlPrefix, headers, targetCourse, assignmentName, assignmentLink, assignmentPoints, assignmentDueAt, assignmentLockAt);
             console.log("Assignment created: ", targetAssignment);
           }
           else {
@@ -143,8 +152,8 @@ const headersBackup = headers; //delete
   module.exports.syncGrades = syncGrades;
   //end of the block
 
-  const createConversation = function(urlPrefix, headers, recipientId, subject, message) {
-    const url = path.join(canvasUrl, 'api/v1/conversations');
+  const createConversation = function(urlPrefix=canvasUrl, headers, recipientId, subject, message) {
+    const url = path.join(urlPrefix, 'api/v1/conversations');
     const body = {
       recipients: [recipientId],
       subject: subject,

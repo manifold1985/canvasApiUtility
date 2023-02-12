@@ -89,6 +89,10 @@ app.route('/subscribe').post((req, res) => {
 
 app.route('/pass').post((req, res) => res.json(process.env['CANVAS_API_TOKEN_TEST']));
 
+app.route('/Sync-Grades').post((req, res) => {
+  res.send("Sync Grades");
+})
+
 app.use((req, res) => res.redirect('/'));
 
 //require('./utilities').getCourses().then(res => console.log(res));
