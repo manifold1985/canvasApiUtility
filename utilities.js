@@ -1,24 +1,23 @@
+require('dotenv').config();
 const express = require('express');
 const app = express();
 const axios = require('axios');
 const path = require('path');
+const cron = require('node-cron');
 const fetch = require('@replit/node-fetch');
 //const fetch = require('node-fetch');
-const cron = require('node-cron');
-require('dotenv').config();
-
+const canvasUrl = 'https://canvas.test.instructure.com';
+const myToken = process.env['CANVAS_API_TOKEN_TEST'];
+const headers = {
+  Authorization: `Bearer ${myToken}`,
+  Accept: "application/json+canvas-string-ids"
+}
+const headersBackup = headers; //delete
 //This block tests utilities
 {
   const sendMessage = false;
   const schedule = " 30 14 16 * * *"
-  const userId ="190000005530740";
-  const canvasUrl = 'https://canvas.test.instructure.com';
-  const myToken = process.env['CANVAS_API_TOKEN_TEST'];
-  const headers = {
-    Authorization: `Bearer ${myToken}`,
-    Accept: "application/json+canvas-string-ids"
-  }
-  const headersBackup = headers; //delete
+  const userId = "190000005530740";
   let url = path.join(canvasUrl, 'api/v1/conversations');
 
   const courses = ["190000001927022", "190000001927048", "190000001927031"];
@@ -30,34 +29,34 @@ require('dotenv').config();
     force_new: true
   }
 
-      
-  function fetchPost(url, headers, body) 
-  {
-    const headersPost = Object.assign({'Content-type': 'application/json'}, headers);
-    fetch(url, {
+  async function fetchPost(url, headers, body) {
+    const headersPost = Object.assign({ 'Content-type': 'application/json' }, headers);
+    let response = await fetch(url, {
       method: 'POST',
       body: JSON.stringify(body),
       headers: headersPost
-    }).then(res => {
-      if (!res.ok) {
-      console.log(body);
-      console.log(res.statusText);
+    })
+      if (!response.ok) {
+        console.log(body);
+        console.log(res.statusText);
+        return;
       }
-      console.log('X-Rate-Limit-Remaining:', res.headers.get('X-Rate-Limit-Remaining'));
-    });
+      console.log('X-Rate-Limit-Remaining:', response.headers.get('X-Rate-Limit-Remaining'));
+    response = await response.json();
+    return response;
   }
-  
+
   module.exports.fetchPost = fetchPost;
 
-  module.exports.getSubmissions = async function(urlPrefix=canvasUrl, headers=headersBackup, courseId = '190000001927031', assignmentId = '190000016498887') {
+  module.exports.getSubmissions = async function(urlPrefix = canvasUrl, headers = headersBackup, courseId = '190000001927031', assignmentId = '190000016498887') {
     const url = path.join(urlPrefix, `api/v1/courses/${courseId}/assignments/${assignmentId}/submissions?include[]=user`);
-    const submissions = await fetch(url,{
+    const submissions = await fetch(url, {
       headers: headers
     });
     return submissions;
   }
-//the block for "sync assignments"
-  const createAssignment = function(urlPrefix = canvasUrl, headers = headersBackup, courseId = '190000001927022', assignmentName = 'Lab 1', assignmentLink) {
+  //the block for "sync assignments"
+  const createAssignment = async function(urlPrefix = canvasUrl, headers = headersBackup, courseId = '190000001927022', assignmentName = 'Lab 1', assignmentLink) {
     const url = path.join(urlPrefix, `/api/v1/courses/${courseId}/assignments`);
     const body = {
       assignment: {
@@ -66,31 +65,69 @@ require('dotenv').config();
         published: true,
         description: `
         <div>
-          <a href='${assignmentLink}'>Click to redirect to the assignment.</a>
+          <a href='${assignmentLink}'>Click to redirect to the assignment</a>.
         </div>
         `
       }
     }
-    fetchPost(url, headers, body);
+    const response = await fetchPost(url, headers, body);
+    return response.id;
   }
   module.exports.createAssignment = createAssignment;
 
-  const syncGrade = async function (urlPrefix, headers, sourceCourse, targetCourse, sourceAssignment, targetAssignment) {
-    let url = path.join(urlPrefix, `/api/v1/courses/${sourceCourse}/assignments/${sourceAssignment}/submissions`);
-    let currSubmissions, page = 1;
-    const body = {
-      grade_data: {}
-        }
-    while(currSubmissions = await fetchPage(url, headers,page)) {
-      currSubmissions.forEach(submission => {
-        body.grade_data[submission.user_id] = submission.score;
-      })
-    }
+  const getAssignments = async function(urlPrefix, headers, courseId, page) {
+    url = path.join(urlPrefix, `/api/v1/courses/${courseId}/assignments`)
+    const response = await fetchPage(url, headers, page);
+    return response;
+  }
+
+  const postGrades = async function(urlPrefix, headers, courseId, assignmentId, data) {
     
   }
 
-//end of the block
-  const createConversation = function(urlPrefix, headers, recipientId, subject, message) {
+  const syncGrades = async function(urlPrefix = canvasUrl, headers = headersBackup, sourceCourse = '190000001927027', targetCourse = '190000001927022') {//delete the default arguments
+    let currAssignments;
+    let page = 1;
+    while (currAssignments = await getAssignments(urlPrefix, headers, sourceCourse, page)) {
+      for (let i = 0; i < currAssignments.length; i++) {
+        const { id: sourceAssignment, name: assignmentName, html_url: assignmentLink } = currAssignments[i];
+        console.log(sourceAssignment, assignmentName, assignmentLink);
+        let url = path.join(urlPrefix, `/api/v1/courses/${sourceCourse}/assignments/${sourceAssignment}/submissions`);
+        let currSubmissions, page = 1;
+        const body = {
+          grade_data: {}
+        }
+        while (currSubmissions = await fetchPage(url, headers, page)) {
+          currSubmissions.forEach(submission => {
+            body.grade_data[submission.user_id] = submission.score;
+          })
+          page++;
+        }
+        let targetAssignment = await fetch(urlPrefix + `/api/v1/courses/${targetCourse}/assignments?search_term=${assignmentName}`, {
+          headers: headers
+        })
+        if (targetAssignment.ok) {
+          targetAssignment = await targetAssignment.json();
+          if (targetAssignment.length == 0) {
+            targetAssignment = await createAssignment(urlPrefix, headers, targetCourse, assignmentName, assignmentLink);
+            console.log("Assignment created: ", targetAssignment);
+          }
+          else {
+            targetAssignment = targetAssignment.id;
+            console.log('Assignment found: ', targetAssignment);
+          }
+        }
+        else {
+          console.log(targetAssignment.statusText);
+        }
+      }
+      page++;
+    }
+  }
+  module.exports.syncGrades = syncGrades;
+  //end of the block
+
+  const createConversation = async function(urlPrefix, headers, recipientId, subject, message) {
     const url = path.join(canvasUrl, 'api/v1/conversations');
     const body = {
       recipients: [recipientId],
@@ -98,42 +135,42 @@ require('dotenv').config();
       body: message//,
       //force_new: true
     }
-    fetchPost(url, headers, body);    
+    await fetchPost(url, headers, body);
   }
-/*  
-  const getProfile = async function () {
-    let data = await fetch(canvasUrl + '/api/v1/users/190000005920013/profile', {
-      headers: headers
-    });
-    data = await data.json();
-      console.log(data);
-    return data;
-  };
-*/
-//190000001883402 190000001927022
-  const checkOverdue = async (sendMessage, courseId=courses[0], urlPrefix=canvasUrl, headers=headersBackup) => {//take away the "sendMessage" switch
-    
+  /*  
+    const getProfile = async function () {
+      let data = await fetch(canvasUrl + '/api/v1/users/190000005920013/profile', {
+        headers: headers
+      });
+      data = await data.json();
+        console.log(data);
+      return data;
+    };
+  */
+  //190000001883402 190000001927022
+  const checkOverdue = async (sendMessage, courseId = courses[0], urlPrefix = canvasUrl, headers = headersBackup) => {//take away the "sendMessage" switch
+
     const now = new Date();
-    const users = new Map();      
+    const users = new Map();
     const url = path.join(urlPrefix, `/api/v1/courses/${courseId}/assignments?include[]=all_dates`);
     let currAssignments;
     let pageAssig = 1;
     let result = [];
-    while(currAssignments = await fetchPage(url, headers, pageAssig)) {
+    while (currAssignments = await fetchPage(url, headers, pageAssig)) {
       pageAssig++;
       currAssignments = currAssignments.filter(entry => {
         const dates = entry.all_dates.filter(entry => entry.base)[0];
         const dueAt = new Date(dates.due_at);
-        return dayDiff(now, dueAt) > 0  && dayDiff(now, dueAt) < 9 && !entry.omit_from_final_grade;//fix
+        return dayDiff(now, dueAt) > 0 && dayDiff(now, dueAt) < 9 && !entry.omit_from_final_grade;//fix
       });
-      for(let assignmentCount = 0; assignmentCount < currAssignments.length; assignmentCount++) {
+      for (let assignmentCount = 0; assignmentCount < currAssignments.length; assignmentCount++) {
         const assignment = currAssignments[assignmentCount];
         const pointsPossible = assignment.points_possible;
         const restDays = 9 - dayDiff(now, new Date(assignment.all_dates[0].due_at));
         const url = path.join(urlPrefix, `/api/v1/courses/${courseId}/assignments/${assignment.id}/submissions?include[]=user`);
         let currSubmissions;
         let pageSub = 1;
-        while(currSubmissions = await fetchPage(url, headers, pageSub)) {
+        while (currSubmissions = await fetchPage(url, headers, pageSub)) {
           pageSub++;
           //gathering the non-full-scored submissions
           currSubmissions = currSubmissions.filter(submission => {
@@ -143,27 +180,27 @@ require('dotenv').config();
             return `\n${assignmentName}, ${userStatus}, ${restDays} days left before the closing.`
           }
           currSubmissions.forEach(submission => {
-            const userName = submission.user.name.split(' ').slice(0,1).join('');
+            const userName = submission.user.name.split(' ').slice(0, 1).join('');
             const assignmentName = assignment.name;
             const userId = submission.user_id;
-            const userStatus = submission.score || submission.score == 0? parseFloat(submission.score.toFixed(2)) + "/" + pointsPossible : 'unsubmitted';
-            if(!users.has(userId)) {
-              let message = `*This message is auto-generated.* \n${userName}, \nYou have either not submitted or not acquired the full score of each of the following assignments yet.` + messageTemplate(assignmentName, restDays,userStatus);
+            const userStatus = submission.score || submission.score == 0 ? parseFloat(submission.score.toFixed(2)) + "/" + pointsPossible : 'unsubmitted';
+            if (!users.has(userId)) {
+              let message = `*This message is auto-generated.* \n${userName}, \nYou have either not submitted or not acquired the full score of each of the following assignments yet.` + messageTemplate(assignmentName, restDays, userStatus);
               users.set(userId, message);
             } else {
               let message = users.get(userId);
-              message = message + messageTemplate(assignmentName, restDays,userStatus);
+              message = message + messageTemplate(assignmentName, restDays, userStatus);
               users.set(userId, message);
             }
           });
-        };        
-      };        
+        };
+      };
     };
     //Attempt to get around the Canvas rate limit 
-    if(sendMessage) {
+    if (sendMessage) {
       const userArr = [];
-      for (let [user,message] of users) {
-        userArr.push([user,message]);
+      for (let [user, message] of users) {
+        userArr.push([user, message]);
       }
       let userCount = 0;
       const sendRequest = setInterval(function() {
@@ -181,11 +218,11 @@ require('dotenv').config();
     }//delete
   };
   module.exports.checkOverdue = checkOverdue;
-  
+
   module.exports.checkOverdueCron = function() {
     const job = cron.schedule(schedule, function() {//remove the "schedule" & use the selected time of the user
-      for(let i = 0; i < courses.length; i++)
-      checkOverdue(sendMessage, courses[i]);   
+      for (let i = 0; i < courses.length; i++)
+        checkOverdue(sendMessage, courses[i]);
     }, {
       timezone: "America/New_York" //use the timezone of the individual user
     })
@@ -198,7 +235,7 @@ require('dotenv').config();
 //Canvas API Utilities:
 
 const dayDiff = function(date1, date2) {
-  return Math.floor((date1-date2)/1000/3600/24);
+  return Math.floor((date1 - date2) / 1000 / 3600 / 24);
 }
 const fetchPage = async function(url, headers, page, method = 'get', body = null) {
   url = new URL(url);
@@ -209,20 +246,20 @@ const fetchPage = async function(url, headers, page, method = 'get', body = null
   }
   if (body) options.body = body;
   let response = await fetch(url, options);
-  if(!response.ok) {
+  if (!response.ok) {
     console.log(response.statusText);
     return;
   }
   response = await response.json();
-  return response.length > 0? response : false;
+  return response.length > 0 ? response : false;
 }
 
-module.exports.getProfile = async function({urlPrefix, headers, token, envir}) {
+module.exports.getProfile = async function({ urlPrefix, headers, token, envir }) {
   const url = path.join(urlPrefix, '/api/v1/users/self/profile');
   let profile = await fetch(url, {
     headers: headers
   });
-  if(!profile.ok) {
+  if (!profile.ok) {
     let err = await Error(profile.statusText);
     err = await err.toString();
     return err;
@@ -231,9 +268,9 @@ module.exports.getProfile = async function({urlPrefix, headers, token, envir}) {
   const id = profile.id;
   const findUser = require('./database').findUser;
   const user = await findUser(id, envir, token);
-  if(!user) {
+  if (!user) {
     const createUser = require('./database').createUser;
-    const user = await createUser(id, profile.name, profile.primary_email,token,envir);
+    const user = await createUser(id, profile.name, profile.primary_email, token, envir);
     user.envir = envir;
     return user;
   }
@@ -242,15 +279,15 @@ module.exports.getProfile = async function({urlPrefix, headers, token, envir}) {
     returning: true,
     envir: envir
   };
-  Object.assign(user,addon);
+  Object.assign(user, addon);
   return user;
 }
 
 
-module.exports.getCourses = function(urlPrefix, headers) {
-  return fetch(urlPrefix + '/api/v1/courses?enrollment_state=active&enrollment_type=teacher&per_page=50', {
-  headers: headers,
-  }).then(res=>{
+module.exports.getCourses = function(urlPrefix = canvasUrl, headers = headersBackup, enrollmentType = 'teacher') {//add enrollment type in the user interface
+  return fetch(urlPrefix + `/api/v1/courses?enrollment_state=active&enrollment_type=${enrollmentType}&per_page=50`, {
+    headers: headers,
+  }).then(res => {
     if (!res.ok) {
       throw Error(res.statusText);
     }
@@ -258,8 +295,8 @@ module.exports.getCourses = function(urlPrefix, headers) {
   }).then(res => {
     let courses = res.map(entry => {
       return {
-        id: entry.id, 
-        name: entry.name, 
+        id: entry.id,
+        name: entry.name,
         course_code: entry.course_code
       }
     });
@@ -274,19 +311,19 @@ module.exports.subscribe = async function(obj) {
   const newSub = obj.body;
   const currSub = profile.services;
   const services = Object.keys(currSub);
-  
+
   for (let service of services) {
     const subscription = {
       active: false,
       courses: []
     };
-    
+
     if (newSub[service + '-sub'] && newSub[service]) {
       subscription.active = true;
-      if(!Array.isArray(newSub[service])) newSub[service] = [newSub[service]];
+      if (!Array.isArray(newSub[service])) newSub[service] = [newSub[service]];
       subscription.courses = newSub[service];
     }
     Object.assign(currSub[service], subscription);
   }
-   return profile.save().catch(err => console.log(err));  
+  return profile.save().catch(err => console.log(err));
 }
