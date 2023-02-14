@@ -1,7 +1,7 @@
 require('dotenv').config();
-const express = require('express');
-const app = express();
-const axios = require('axios');
+//const express = require('express');
+//const app = express();
+//const axios = require('axios');
 const path = require('path');
 const cron = require('node-cron');
 const fetch = require('@replit/node-fetch');
@@ -29,7 +29,7 @@ const headersBackup = headers; //delete
     force_new: true
   }
 
-  function getProgress(urlPrefix='canvasUrl', id) {
+  function getProgress(urlPrefix = 'canvasUrl', id) {
     fetch(canvasUrl + `/api/v1/progress/${id}`, {
       method: "GET",
       headers: headers
@@ -139,7 +139,7 @@ const headersBackup = headers; //delete
           }
           let progress = await postGrades(urlPrefix, headers, targetCourse, targetAssignment, body);
           setTimeout(function() {
-            getProgress(urlPrefix,progress.id);
+            getProgress(urlPrefix, progress.id);
           }, 5000);
         }
         else {
@@ -152,7 +152,7 @@ const headersBackup = headers; //delete
   module.exports.syncGrades = syncGrades;
   //end of the block
 
-  const createConversation = function(urlPrefix=canvasUrl, headers, recipientId, subject, message) {
+  const createConversation = function(urlPrefix = canvasUrl, headers, recipientId, subject, message) {
     const url = path.join(urlPrefix, 'api/v1/conversations');
     const body = {
       recipients: [recipientId],
@@ -245,7 +245,7 @@ const headersBackup = headers; //delete
 
   module.exports.checkOverdueCron = function() {
     const job = cron.schedule(schedule, function() {//remove the "schedule" & use the selected time of the user
-      console.log('Scheduling checkOverdueCron. sendMessage: ', sendMessage);      
+      console.log('Scheduling checkOverdueCron. sendMessage: ', sendMessage);
       for (let i = 0; i < courses.length; i++)
         checkOverdue(sendMessage, courses[i]);
     }, {
@@ -309,24 +309,38 @@ module.exports.getProfile = async function({ urlPrefix, headers, token, envir })
 }
 
 
-module.exports.getCourses = function(urlPrefix = canvasUrl, headers = headersBackup, enrollmentType = 'teacher') {//add enrollment type in the user interface
-  return fetch(urlPrefix + `/api/v1/courses?enrollment_state=active&enrollment_type=${enrollmentType}&per_page=50`, {
+module.exports.getCourses = async function(urlPrefix = canvasUrl, headers = headersBackup) {//add enrollment type in the user interface
+  let coursesTeacher = await fetch(urlPrefix + `/api/v1/courses?enrollment_state=active&enrollment_type=teacher&per_page=50`, {
     headers: headers,
-  }).then(res => {
-    if (!res.ok) {
-      throw Error(res.statusText);
-    }
-    return res.json();
-  }).then(res => {
-    let courses = res.map(entry => {
-      return {
-        id: entry.id,
-        name: entry.name,
-        course_code: entry.course_code
-      }
-    });
-    return courses;
   });
+  if (!coursesTeacher.ok) {
+    throw Error(coursesTeacher.statusText);
+  } else {
+    coursesTeacher = await coursesTeacher.json();
+  }
+  coursesTeacher = coursesTeacher.map(entry => {
+    return {
+      id: entry.id,
+      name: entry.name,
+      course_code: entry.course_code
+    }
+  });
+  let coursesTA = await fetch(urlPrefix + `/api/v1/courses?enrollment_state=active&enrollment_type=ta&per_page=50`, {
+    headers: headers,
+  });
+  if (!coursesTA.ok) {
+    throw Error(coursesTA.statusText);
+  } else {
+    coursesTA = await coursesTA.json();
+  }
+  coursesTA = coursesTA.map(entry => {
+    return {
+      id: entry.id,
+      name: entry.name,
+      course_code: entry.course_code
+    }
+  });
+  return coursesTeacher.concat(coursesTA);
 };//address the pagination later
 
 

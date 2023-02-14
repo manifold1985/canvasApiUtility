@@ -74,7 +74,7 @@ app.route('/user').get((req,res) => {
   });  
 });
 
-app.route('/courses').get((req, res,next) => {
+app.route('/courses').get((req, res, next) => {
   const getCourses = require('./utilities').getCourses;
   getCourses(req.session.urlPrefix, req.session.headers)
     .then(response => res.json(response))
