@@ -1,5 +1,5 @@
 export default function(populate = false) {
-  const services = ['Check-Overdue', "Sync-Grades", "Service-3"];
+  const services = ['Check-Overdue', "Service-2", "Service-3"];
   if (!populate) {
     const form = $('<form action="/subscribe" method="post" class="invisible"></form>');
     const table = $('<table class="table table-bordered table-striped table-hover"><tr><th>Service</th><th>Subscribe</th><th>Courses</th></tr></table>');

@@ -89,6 +89,15 @@ app.route('/subscribe').post((req, res) => {
 
 app.route('/pass').post((req, res) => res.json(process.env['CANVAS_API_TOKEN_TEST']));
 
+app.route('/Check-Overdue').post((req,res) => {
+  const courses = req.body["Check-Overdue"];
+  courses.forEach(course => {    require('./utilities').checkOverdue(false,course,req.session.urlPrefix, req.session.headers).then(()=>{
+    console.log('Check overdue for ', course);
+  });
+  })  
+  res.send("Check-Overdue");
+})
+
 app.route('/Sync-Grades').post((req, res) => {
   res.send("Sync Grades");
 })
