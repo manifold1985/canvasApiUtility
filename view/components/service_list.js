@@ -94,5 +94,5 @@ export default function(populate = false) {
   })
 };
 
-
+//The subscription state cannot be displayed properly after submitting or refreshing.
 
