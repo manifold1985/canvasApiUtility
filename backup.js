@@ -7,10 +7,10 @@ const fetch = require('node-fetch');
 
 const startTime = new Date();
 const port = 3000;
-const test = true;
+const test = false;
 if (test) {
-  var canvasUrl = 'https://canvas.beta.instructure.com';
-  var myToken = process.env['CANVAS_API_TOKEN_BETA'];
+  var canvasUrl = 'https://canvas.test.instructure.com';
+  var myToken = process.env['CANVAS_API_TOKEN_TEST'];
 } else {
   var canvasUrl = 'https://canvas.instructure.com';
   var myToken = process.env['CANVAS_API_TOKEN'];
@@ -309,9 +309,9 @@ const assignRandomGrades = async (courseId, assignmentId) => {
 };
 
 const courses = [
-  ['190000001883402',75],//MATH211 01
-  ['190000001883404',73],//MATH211 02
-  ['190000001883441', 87]//MATH 308 01
+  ['190000001927022',75],
+  ['190000001927048',73],
+  ['190000001927031', 87]
 ];
 
 const handleCLOs = async () => {
@@ -323,3 +323,4 @@ const handleCLOs = async () => {
   };
 };
 
+module.exports.handleCLOs = handleCLOs;

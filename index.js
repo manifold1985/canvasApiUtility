@@ -102,6 +102,11 @@ app.route('/Check-Overdue').post((req, res) => {
 })
 
 app.route('/Sync-Grades').post((req, res) => {
+  console.log(req.body);
+  /*const [source, target] = [req.body["Sync-Grades"], req.body["Sync-Grades-target"]];
+  require('./utilities').syncGrades(req.session.urlPrefix, req.session.headers, source, target).then(() => {
+    console.log('Sync Grades for ', source, target);
+  });*/
   res.send("Sync Grades");
 })
 
@@ -115,3 +120,4 @@ app.use((req, res) => res.redirect('/'));
 //require('./utilities').getSubmissions().then(res => res.json()).then(res => console.log(res));
 //require('./utilities').syncGrades();
 //require('./utilities').getProgress();
+//require('./backup.js').handleCLOs();

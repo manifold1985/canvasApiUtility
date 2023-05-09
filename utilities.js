@@ -366,3 +366,98 @@ module.exports.subscribe = async function(obj) {
   }
   return profile.save().catch(err => console.log(err));
 }
+
+// beta functions
+const assignRandomGrades = async (courseId, assignmentId) => {
+  const perPage = '50';
+  const totalScores = new Map();
+  let url = canvasUrl + `/api/v1/courses/${courseId}`;
+  for (let page = 1; true; page++) {    
+    let query = `?page=${page}&per_page=${perPage}&enrollment_type[]=student&include[]=enrollments`;
+    let students = await fetch(url+'/users'+query,{
+      headers: headers
+    });
+    students = await students.json();
+
+    if (students.length == 0) {break;}
+    for (let i = 0; i < students.length; i++) {
+      const enrollments = students[i].enrollments;
+      for(let j = 0; j < students[i].enrollments.length; j++) {
+        if (enrollments[j].course_id != courseId) {
+          continue;
+        }
+        totalScores.set(enrollments[j].user_id, enrollments[j].grades.final_score);
+      } 
+    }
+  }
+  const studentIds = totalScores.keys();
+  const grade_data = {};
+  for(let id of studentIds) {
+    grade_data[id] ={
+      "posted_grade": ((Math.random()*0.1+0.905)*totalScores.get(id)).toFixed(2)
+    }
+  }
+  url = url + `/assignments/${assignmentId}/submissions/update_grades`;
+  axios.post(url, {
+    grade_data: grade_data
+  }, {
+    headers: headers
+  })
+    .then(() => console.log(`Assigning random grades - Course ${courseId} - Assignment ${assignmentId} - Request succeeded. Time used: `, (new Date() - startTime)/1000), 's')
+    .catch(err => console.log(err));
+};
+
+const courses = [
+  ['190000001927022',75],
+  ['190000001927048',73],
+  ['190000001927031', 87]
+];
+const getAssignmentsByGroup = async (courseId, groupName) => {
+  let url = `/api/v1/courses/${courseId}/assignment_groups`;
+  groupName = new RegExp(groupName,"ig");
+  let groupPagination = await getPagination(canvasAPI, url);
+  let groups = groupPagination.data.filter(entry => groupName.test(entry.name));
+  let next = groupPagination.pagination.next;
+  while (next) {
+    groupPagination = await getPagination(canvasAPI, next, true);
+    groups = [...groups, ...groupPagination.data.filter(entry => groupName.test(entry.name))];
+  }
+  groupIds = groups.map((entry) => entry.id);
+  url = `/api/v1/courses/${courseId}/assignments`;
+  const perPage = 50;
+  let assPagination = await getPagination(canvasAPI, url,false,true, perPage);
+  let result=[];
+  next = null;
+  do {
+    const currAssignments =[];
+    for (let i = 0; i < groupIds.length; i++) {
+        const id = groupIds[i];
+        data = await assPagination.data;
+        for (let j = 0; j < data.length; j++) {
+          if(data[j].assignment_group_id === id) {
+            currAssignments.push(data[j]);
+          }
+        }
+      }
+    result = [...result, ...currAssignments];      
+    next = assPagination.pagination.next;
+    if(next) {
+      assPagination = await getPagination(canvasAPI, next, true,true, perPage);
+    }
+  } while (next);
+  for (let i = 0; i < result.length; i++) {
+    result[i] = result[i].id;
+  }
+  return result;
+}
+
+const handleCLOs = async () => {
+  for (let i = 0; i < courses.length;i++) {
+    const ass = await getAssignmentsByGroup(courses[i][0], 'clos');     
+    for (let j = 0; j < ass.length; j++) {
+      await assignRandomGrades(courses[i][0],ass[j]);
+    };
+  };
+};
+module.exports.handleCLOs = handleCLOs;
+//end of beta
