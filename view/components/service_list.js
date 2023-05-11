@@ -1,6 +1,6 @@
 export default function(populate = false) {
-  const services = ['Check-Overdue', "Sync-Grades", "Assign-Grades"];//This array holds the title of each service.
-  const types = [1, 2, 3];// Indicate whether the service references a source and a target.
+  const services = ['Check-Overdue', "Sync-Grades", "Assign-Grades"];
+  const types = [1, 2, 3];
   const listCourses = function(res, courseCell, courseDiv, service) {
     for (let i = 0; i < res.length; i++) {
       const serviceId = service;
@@ -29,27 +29,23 @@ export default function(populate = false) {
     };
     courseCell.attr("colspan", "2");
   }
-  const sourceTarget = function(res, courseCell, targetCell, courseDiv, targetDiv, service, id, row) {              
-              const serviceId = service;
-              const selectTarget = $("<select></select>");
-              const selectSource = $("<select></select>");
-              selectTarget.attr('name', `${serviceId + "-target"}`);
-              targetDiv.append(selectTarget);
-              selectSource.attr('name', `${serviceId + "-source"}`);
-              courseDiv.append(selectSource);
-              selectSource.append($(`<option value = null>Select a course</option>`));
-              selectTarget.append($(`<option value = null>Select a course</option>`))
-              for (let i = 0; i < res.length; i++) {
-                const option = Array.from(Array(2), () => $("<option></option>"));
-                option.forEach(e => {
-                  e.attr("value", `${res[i].id}`)
-                    .text(`${res[i].name} (${res[i].course_code}, ${res[i].id})`);
-                });
-                selectSource.append(option[0]);
-                selectTarget.append(option[1]);
-              }
+  const makeCourseMenu = function(res, div, service, suffix = '') {
+    const serviceId = service;
+    const select = $("<select></select>");
+    select.attr('name', `${serviceId + suffix}`);
+    select.attr('id', `${serviceId + suffix}`);
+    div.append(select);
+    select.append($(`<option value = null>Select a course</option>`));
+    for (let i = 0; i < res.length; i++) {
+      const option = $("<option></option>");
+      option
+        .attr("value", `${res[i].id}`)
+        .text(`${res[i].name} (${res[i].course_code}, ${res[i].id})`);
+      select.append(option);
+    }
+    return select;
   }
-  
+
   if (!populate) {
     const form = $('<form action="/subscribe" method="post" class="invisible"></form>');
     const table = $('<table class="table table-bordered table-striped table-hover"><tr><th>Service</th><th>Subscribe</th><th colspan = "2">Courses</th></tr></table>');//Define the service list table headers.
@@ -81,7 +77,8 @@ export default function(populate = false) {
                 .html(`<input type="checkbox" name="${id}-sub" style="display: block; margin: auto">`) // Define the subsribe checkbox cell
             )
             const courseCell = $(`<td id=${id}-3></td>`);//Create the cource cell.            
-            const courseDiv = $('<div class="container-fluid"></div>');
+            const courseDiv = $('<div class="container-fluid"></div>');//Create the course div.
+            courseCell.append(courseDiv);
             row.append(courseCell);
             if (types[j] == 1) {
               listCourses(res, courseCell, courseDiv, services[j]);
@@ -92,15 +89,26 @@ export default function(populate = false) {
               const targetDiv = $('<div class="container-fluid"></div>');
               targetCell.append(targetDiv);
               row.append(targetCell);
-              sourceTarget(res, courseCell, targetCell, courseDiv, targetDiv, services[j], id, row);
+              makeCourseMenu(res, courseDiv, services[j], '-source');
+              makeCourseMenu(res, targetDiv, services[j], '-target');
               const addButton = $("<button type = 'button' class='btn btn-primary'>Add</button>");
               addButton.on('click', function() {
-                sourceTarget(res, courseCell, targetCell, courseDiv, targetDiv, services[j], id, row);
-              });
+                makeCourseMenu(res, courseDiv, services[j], '-source');
+                makeCourseMenu(res, targetDiv, services[j], '-target');
+              });              
               targetCell.append(addButton);
-            }
-            courseCell.append(courseDiv);
-            const deliver = $(`<button type='submit' class='btn btn-primary' formaction='/${id}'>Deliver</button>`);//Use the "formaction" attribute to change the default action of the submit button.
+            } else if(types[j] == 3) {
+              const select = makeCourseMenu(res, courseDiv, services[j], '-groups');
+              const selectId = select.attr("id");
+              $(`#${selectId} > option`)
+                .filter(function() {
+                return this.value != "null";
+              })
+                .on('click', function(e) {
+                  alert(e.currentTarget.value);
+                });
+            }            
+            const deliver = $(`<button type='submit' class='btn btn-primary' formaction='/${id}'>Deliver</button>`);
             courseCell.append(deliver);
           };
         };

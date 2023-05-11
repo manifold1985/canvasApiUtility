@@ -3,9 +3,10 @@ const session = require('express-session')
 const path = require('path');
 const bodyParser = require('body-parser');
 require('dotenv').config();
-const mongoose = require('mongoose');
+//const mongoose = require('mongoose');
 
-const mongoURI = process.env['MONGO_URI'];/*
+//const mongoURI = process.env['MONGO_URI'];
+/*
 mongoose
   .connect(mongoURI)
   .then(() => console.log("Database connection succeeded."))
