@@ -40,6 +40,7 @@ app.use(session({
   }
 }));
 
+app.use(bodyParser.text());
 app.use(bodyParser.urlencoded({ extended: false }));
 
 app.route('/').get((req, res) => res.sendFile(homepage));
@@ -103,14 +104,33 @@ app.route('/Check-Overdue').post((req, res) => {
 })
 
 app.route('/Sync-Grades').post((req, res) => {
-  console.log(req.body);
-  /*const [source, target] = [req.body["Sync-Grades"], req.body["Sync-Grades-target"]];
+  /*const [source, target] = [req.body["Sync-Grades-source"], req.body["Sync-Grades-target"]];
   require('./utilities').syncGrades(req.session.urlPrefix, req.session.headers, source, target).then(() => {
     console.log('Sync Grades for ', source, target);
   });*/
   res.send("Sync Grades");
 })
 
+app.route('/groups').post((req, res) => {
+  require('./utilities')
+    .getAssignmentGroups(req.session.urlPrefix, req.session.headers, req.body)
+    .then(response => res.json(response))
+    .catch(error => {
+      console.log(error);
+    });
+});
+
+app.route('/Assign-Grades').post((req, res) => {
+  const [courseId, groupId] = [req.body['Assign-Grades-courses'], req.body['Assign-Grades-groups']];
+  require('./utilities').assignGrades(req.session.urlPrefix, req.session.headers, courseId, groupId)
+    .then(response => {
+      res.redirect('/profile');
+    })
+    .catch(err => {
+      console.log(err)
+      res.redirect('/profile');
+    });  
+})
 app.use((req, res) => res.redirect('/'));
 
 //require('./utilities').getCourses().then(res => console.log(res));

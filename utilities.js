@@ -1,11 +1,7 @@
 require('dotenv').config();
-//const express = require('express');
-//const app = express();
-//const axios = require('axios');
 const path = require('path');
 const cron = require('node-cron');
-const fetch = require('@replit/node-fetch');
-//const fetch = require('node-fetch');
+const fetch = require('node-fetch');
 const canvasUrl = 'https://canvas.instructure.com';
 const myToken = process.env['CANVAS_API_TOKEN'];
 const headers = {
@@ -37,7 +33,11 @@ const headersBackup = headers; //delete
   }
   module.exports.getProgress = getProgress;
 
-  async function fetchPost(url, headers, body) {
+  function handleError(res) {
+    return Error(res.status + ": " + res.statusText);
+  }
+  
+  var fetchPost = async function(url, headers, body) {
     const headersPost = Object.assign({ 'Content-type': 'application/json' }, headers);
     let response = await fetch(url, {
       method: 'POST',
@@ -45,13 +45,12 @@ const headersBackup = headers; //delete
       headers: headersPost
     })
     if (!response.ok) {
-      console.log(body);
-      console.log(response.statusText);
-      return;
+      throw handleError(response);
+    } else {
+      console.log('X-Rate-Limit-Remaining:', response.headers.get('X-Rate-Limit-Remaining'));
+      response = await response.json();
+      return response;
     }
-    console.log('X-Rate-Limit-Remaining:', response.headers.get('X-Rate-Limit-Remaining'));
-    response = await response.json();
-    return response;
   }
 
   module.exports.fetchPost = fetchPost;
@@ -367,97 +366,72 @@ module.exports.subscribe = async function(obj) {
   return profile.save().catch(err => console.log(err));
 }
 
-// beta functions
-const assignRandomGrades = async (courseId, assignmentId) => {
-  const perPage = '50';
-  const totalScores = new Map();
-  let url = canvasUrl + `/api/v1/courses/${courseId}`;
+const assignRandomGrades = async (urlPrefix, headers, courseId, assignmentId) => {
+  const perPage = '36';
+  const finalScores = new Map();
+  let url = path.join(urlPrefix, `api/v1/courses/${courseId}`);
   for (let page = 1; true; page++) {    
     let query = `?page=${page}&per_page=${perPage}&enrollment_type[]=student&include[]=enrollments`;
-    let students = await fetch(url+'/users'+query,{
+    let students = await fetch(url + '/users' + query, {
       headers: headers
     });
     students = await students.json();
-
-    if (students.length == 0) {break;}
+    if (students.length == 0) break;
     for (let i = 0; i < students.length; i++) {
-      const enrollments = students[i].enrollments;
-      for(let j = 0; j < students[i].enrollments.length; j++) {
-        if (enrollments[j].course_id != courseId) {
-          continue;
-        }
-        totalScores.set(enrollments[j].user_id, enrollments[j].grades.final_score);
-      } 
+      const enrollment = students[i].enrollments.filter(e => e.course_id == courseId)[0];
+      finalScores.set(enrollment.user_id, enrollment.grades.final_score);       
     }
   }
-  const studentIds = totalScores.keys();
+  const studentIds = finalScores.keys();
   const grade_data = {};
-  for(let id of studentIds) {
-    grade_data[id] ={
-      "posted_grade": ((Math.random()*0.1+0.905)*totalScores.get(id)).toFixed(2)
+  for(let studentId of studentIds) {
+    grade_data[studentId] = {
+      "posted_grade": ((Math.random()*0.1+0.905)*finalScores.get(studentId)).toFixed(2)
     }
   }
-  url = url + `/assignments/${assignmentId}/submissions/update_grades`;
-  axios.post(url, {
+  url = path.join(url, `/assignments/${assignmentId}/submissions/update_grades`);
+  const startTime = new Date();
+  fetchPost(url, headers, {
     grade_data: grade_data
-  }, {
-    headers: headers
   })
     .then(() => console.log(`Assigning random grades - Course ${courseId} - Assignment ${assignmentId} - Request succeeded. Time used: `, (new Date() - startTime)/1000), 's')
     .catch(err => console.log(err));
 };
 
-const courses = [
-  ['190000001927022',75],
-  ['190000001927048',73],
-  ['190000001927031', 87]
-];
-const getAssignmentsByGroup = async (courseId, groupName) => {
-  let url = `/api/v1/courses/${courseId}/assignment_groups`;
-  groupName = new RegExp(groupName,"ig");
-  let groupPagination = await getPagination(canvasAPI, url);
-  let groups = groupPagination.data.filter(entry => groupName.test(entry.name));
-  let next = groupPagination.pagination.next;
-  while (next) {
-    groupPagination = await getPagination(canvasAPI, next, true);
-    groups = [...groups, ...groupPagination.data.filter(entry => groupName.test(entry.name))];
+const getAssignmentGroups = async function(urlPrefix, headers, courseId) {
+  const url = new URL(path.join(urlPrefix, `/api/v1/courses/${courseId}/assignment_groups`));
+  let response = await fetch(url.href, {
+    headers: headers
+  });
+  if(!response.ok) {
+    throw handleError(response);
+  } else {
+    response = await response.json();
+    return response;
   }
-  groupIds = groups.map((entry) => entry.id);
-  url = `/api/v1/courses/${courseId}/assignments`;
-  const perPage = 50;
-  let assPagination = await getPagination(canvasAPI, url,false,true, perPage);
-  let result=[];
-  next = null;
-  do {
-    const currAssignments =[];
-    for (let i = 0; i < groupIds.length; i++) {
-        const id = groupIds[i];
-        data = await assPagination.data;
-        for (let j = 0; j < data.length; j++) {
-          if(data[j].assignment_group_id === id) {
-            currAssignments.push(data[j]);
-          }
-        }
-      }
-    result = [...result, ...currAssignments];      
-    next = assPagination.pagination.next;
-    if(next) {
-      assPagination = await getPagination(canvasAPI, next, true,true, perPage);
-    }
-  } while (next);
-  for (let i = 0; i < result.length; i++) {
-    result[i] = result[i].id;
+}
+module.exports.getAssignmentGroups = getAssignmentGroups;
+
+const getAssignmentsInGroup = async function(urlPrefix, headers, courseId, groupId) {
+  const url = new URL(path.join(urlPrefix, `/api/v1/courses/${courseId}/assignment_groups/${groupId}`));
+  url.searchParams.append('include[]', 'assignments');
+  headers = new fetch.Headers(headers);
+  let response = await fetch(url.href, {
+    headers: headers
+  });
+  if(!response.ok) {
+    throw handleError(response);
+  } else {
+    response = await response.json();
+    return response.assignments;
   }
-  return result;
 }
 
-const handleCLOs = async () => {
-  for (let i = 0; i < courses.length;i++) {
-    const ass = await getAssignmentsByGroup(courses[i][0], 'clos');     
-    for (let j = 0; j < ass.length; j++) {
-      await assignRandomGrades(courses[i][0],ass[j]);
-    };
-  };
-};
-module.exports.handleCLOs = handleCLOs;
-//end of beta
+const assignGrades = async function(urlPrefix, headers, courseId, groupId) {
+  const assignments = await getAssignmentsInGroup(urlPrefix, headers, courseId, groupId);
+  for(let i = 0; i < assignments.length; i++) {
+    await assignRandomGrades(urlPrefix, headers, courseId, assignments[i].id);
+  }
+  return;
+}
+module.exports.assignGrades = assignGrades;

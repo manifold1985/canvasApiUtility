@@ -85,7 +85,7 @@ export default function(populate = false) {
             } else if (types[j] == 2) {//Create the cross-reference cell.
               const targetCell = $(`<td id=${id}-4></td>`);
               targetCell.append('<th>Target</th>');
-              courseCell.append('<th>Source</th>');
+              courseCell.prepend('<th>Source</th>');
               const targetDiv = $('<div class="container-fluid"></div>');
               targetCell.append(targetDiv);
               row.append(targetCell);
@@ -98,15 +98,39 @@ export default function(populate = false) {
               });              
               targetCell.append(addButton);
             } else if(types[j] == 3) {
-              const select = makeCourseMenu(res, courseDiv, services[j], '-groups');
-              const selectId = select.attr("id");
+              const groupCell = $(`<td id = ${id}-4></td>`)
+              const selectGroup = $('<select></select>');
+              selectGroup.attr('name', `${services[j]}-groups`);
+              groupCell.append(selectGroup);
+              row.append(groupCell);
+              const selectCourse = makeCourseMenu(res, courseDiv, services[j], '-courses');
+              const selectId = selectCourse.attr("id");
+              $(`#${selectId} > option`)
+                .filter(function() {
+                return this.value == "null";
+              }).on('click', function() {
+                  selectGroup.empty();
+              })
               $(`#${selectId} > option`)
                 .filter(function() {
                 return this.value != "null";
               })
                 .on('click', function(e) {
-                  alert(e.currentTarget.value);
-                });
+                  fetch('/groups', {
+                    method: "POST",
+                    headers: {
+                      'Content-Type': 'text/plain'
+                    },
+                    body: e.currentTarget.value
+                  }).then(response => response.json())
+                    .then(response => {
+                      selectGroup.empty();
+                      selectGroup.append('<option value="null">Select a group</option>');
+                      response.forEach(group => {
+                        selectGroup.append($(`<option value=${group.id}>${group.name}</option>`));
+                      });
+                    });
+                });              
             }            
             const deliver = $(`<button type='submit' class='btn btn-primary' formaction='/${id}'>Deliver</button>`);
             courseCell.append(deliver);
