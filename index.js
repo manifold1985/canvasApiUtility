@@ -3,6 +3,12 @@ const session = require('express-session')
 const path = require('path');
 const bodyParser = require('body-parser');
 require('dotenv').config();
+const urlPrefixTest = 'https://canvas.test.instructure.com'
+const myToken = process.env['CANVAS_API_TOKEN_TEST'];
+const headersTest = {
+  Authorization: `Bearer ${myToken}`,
+  Accept: "application/json+canvas-string-ids"
+}
 //const mongoose = require('mongoose');
 
 //const mongoURI = process.env['MONGO_URI'];
@@ -132,13 +138,3 @@ app.route('/Assign-Grades').post((req, res) => {
     });  
 })
 app.use((req, res) => res.redirect('/'));
-
-//require('./utilities').getCourses().then(res => console.log(res));
-//require('./utilities').checkOverdue(false, "190000001927022");
-//require('./utilities').checkOverdueCron();
-//require('./utilities').createAssignment();
-//require('./utilities').fetchPost();
-//require('./utilities').getSubmissions().then(res => res.json()).then(res => console.log(res));
-//require('./utilities').syncGrades();
-//require('./utilities').getProgress();
-//require('./backup.js').handleCLOs();
