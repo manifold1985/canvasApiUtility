@@ -138,3 +138,5 @@ app.route('/Assign-Grades').post((req, res) => {
     });  
 })
 app.use((req, res) => res.redirect('/'));
+
+require('./utilities').createPeerGradedAssignment();
