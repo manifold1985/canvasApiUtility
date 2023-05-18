@@ -17,8 +17,6 @@ const schedule = "20 57 2 * * *";
 const userId = "190000005530740";
 let url = path.join(urlPrefixTest, 'api/v1/conversations');
 
-const courses = ["190000001927022", "190000001927048", "190000001927031"];
-
 const body = {
   recipients: [userId],
   subject: 'test',
@@ -465,7 +463,15 @@ const assignGrades = async function(urlPrefix, headers, courseId, groupId) {
 module.exports.assignGrades = assignGrades;
 
 const createQuizQuetion = async function(urlPrefix = urlPrefixTest, headers = headersTest, data) {
-  
+  const {
+    courseId: courseId,
+    quizId: quizId,
+    postData: postData
+  } = data;
+  const url = new URL(path.join(urlPrefix, `/api/v1/courses/${courseId}/quizzes/${quizId}/questions`));
+  let createdQuestion = await fetchPost(url, headers, postData);
+  //createdQuestion = await createdQuestion.json();
+  return createdQuestion;  
 }
 
 const createQuiz = async function(urlPrefix = urlPrefixTest, headers = headersTest, courseId = courseIdTest, quizData) {
@@ -496,7 +502,7 @@ const createPeerGradedAssignment = async function(urlPrefix = urlPrefixTest, hea
   const assignmentGroups = await getAssignmentGroups(urlPrefix, headers, courseId);
   const unprocessedId = assignmentGroups.find(e => /unprocessed/i.test(e.name)).id;
   const students = await getStudents(urlPrefix, headers, courseId);
-  const quizzes = [];//for testing
+  const quizzes = [];//for testing. Used to delete the created quizzes.
   for(let i = 0; i < students.length; i++) {
     const {
       id: id,
@@ -505,30 +511,72 @@ const createPeerGradedAssignment = async function(urlPrefix = urlPrefixTest, hea
     const quizData = {
       quiz: {
         title: name + ' ' + order,
-        type: 'graded_survey',
+        quiz_type: 'graded_survey',
+        points_possible: 2,
         assignment_group_id: unprocessedId,
-        published: true,
-        only_visible_to_overrides: true,
+        //only_visible_to_overrides: true,
         description: `<p data-student_id = ${id} data-assignment_id = ${createdAssignmentId}>This is the peer graded form of ${assignmentData.assignment.name} for ${name}.</p>`
       }
     }
-    const createdQuiz = await createQuiz(urlPrefix, headers, courseId, quizData);
-    quizzes.push(createdQuiz.id);//for testing
+    let createdQuiz = await createQuiz(urlPrefix, headers, courseId, quizData);    
+    const questionData = {
+      courseId: courseId,
+      quizId: createdQuiz.id,
+      postData: {
+        question: {
+          question_name: "Pretation Score",
+          question_text: `Please assign a score to the presentation of ${name}. [score]`,
+          question_type: 'multiple_dropdowns_question',
+          position: 1,
+          points_possible: null,
+          answers: []
+        }
+      }
+    }
+    for(let i = 1; i <= 5; i++) {
+      questionData.postData.question.answers.push(
+        {
+          text: i.toString(),
+          blank_id: "score",
+          weight: 20
+        }
+      )
+    }
+    try {
+    await createQuizQuetion(urlPrefix, headers, questionData);
+    const headersPut = Object.assign({ 'Content-Type': 'application/json' }, headers);
+    let urlEdit = new URL(path.join(urlPrefix, `/api/v1/courses/${courseId}/quizzes/${createdQuiz.id}`));
+    let editedQuiz = await fetch(urlEdit, {
+      method: 'PUT',
+      headers: headersPut,
+      body: JSON.stringify({
+        quiz: {
+          nofity_of_update: false,
+          published: true
+        }
+      })
+    });
+    editedQuiz = await editedQuiz.json();      
+    createdQuiz = editedQuiz;
+    } catch (err) {
+      console.log(err);
+    }
+  
     studentsToAssign = Array.from(students.filter(student => student.id != id), student => student.id);
     const overrideData = {
       assignment_override: {
         student_ids: studentsToAssign,
         title: name + "'s peers"
       }
-    };
-    const quiz = await getSingleQuiz(urlPrefix, headers, courseId, createdQuiz.id);
-    try {
+    };    
+    /*try {
       const createdOverrideId = await createAssignmentOverride(urlPrefix, headers, courseId, createdQuiz.assignment_id, overrideData);
     } catch(err) {
       console.log(err);
-    }
+    }*/
+    quizzes.push(createdQuiz.id);//for testing. Used to delete the created quizzes.
   }
-  //for testing
+  //for testing. Used to delete the created quizzes.
   setTimeout(() => {
     quizzes.forEach(createdQuizId => {
       const urlDelete = new URL(path.join(urlPrefix, `/api/v1/courses/${courseId}/quizzes/${createdQuizId}`));
@@ -542,7 +590,7 @@ const createPeerGradedAssignment = async function(urlPrefix = urlPrefixTest, hea
         method: "DELETE",
         headers: headers
       }).then(() => console.log(`Deleted assignment ${createdAssignmentId}`));   
-  }, 60000);//End of "for testing"
+  }, 30000);//End of "for testing"
 }
 module.exports.createPeerGradedAssignment = createPeerGradedAssignment;
 
