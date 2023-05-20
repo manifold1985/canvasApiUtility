@@ -1,6 +1,6 @@
 export default function(populate = false) {
-  const services = ['Check-Overdue', "Sync-Grades", "Assign-Grades"];
-  const types = [1, 2, 3];
+  const services = ['Check-Overdue', "Sync-Grades", "Assign-Grades", "Create-Peer-Graded"];
+  const types = [1, 2, 3, 4];
   const listCourses = function(res, courseCell, courseDiv, service) {
     for (let i = 0; i < res.length; i++) {
       const serviceId = service;
@@ -131,6 +131,33 @@ export default function(populate = false) {
                       });
                     });
                 });              
+            } else if(types[j] == 4) {
+              makeCourseMenu(res, courseDiv, services[j], '-course');
+              const infoCell = $(`<td id=${id}-4></td>`);
+              const infoDiv = $('<div class="container-fluid"></div>');
+              row.append(infoCell);
+              infoCell.append(infoDiv);
+              const labels = Array(3).fill();
+              const inputs = Array(3).fill();
+              const texts = ['name', 'group', 'points'];
+              const ids = Array(3).fill();
+              for(let q = 0; q < 3; q++) {
+                const inputType = texts[q] == 'points'? 'number' : 'text';
+                console.log(inputType);
+                ids[q] = services[j] + '-' + texts[q];
+                labels[q] = $('<label></label>');
+                labels[q]
+                  .text(texts[q])
+                  .attr('for', ids[q])
+                inputs[q] = $('<input></input>');
+                inputs[q]
+                  .attr('id', ids[q])
+                  .attr('type', inputType)
+                  .attr('name', ids[q]);
+                infoDiv
+                  .append(labels[q])
+                  .append(inputs[q]);
+              }
             }            
             const deliver = $(`<button type='submit' class='btn btn-primary' formaction='/${id}'>Deliver</button>`);
             courseCell.append(deliver);
@@ -139,11 +166,7 @@ export default function(populate = false) {
       });
     return;
   }
-  /* To-do List:
-  1. Add "source" and "target" table header to the rows accordingly.
-  2. Merge the cells where there is no need for cross reference.
-  3. Change the checkbox input for cross reference service to dropdown menu. Introduce the 1-1 correspondence.
-  */
+  
   //Start populating from the database
   const form = $('form');
   const table = $('table');
