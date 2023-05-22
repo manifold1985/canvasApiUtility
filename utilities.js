@@ -75,7 +75,7 @@ const fetchPut = async function(url, headers, body) {
   if (!response.ok) {
     throw handleError(response);
   } else {
-    console.log('X-Rate-Limit-Remaining: ', response.headers.get('X-Rate-Limit-Remaining'));
+    console.log('Put X-Rate-Limit-Remaining: ', response.headers.get('X-Rate-Limit-Remaining'));
     response = await response.json();
     return response;
   }
@@ -136,6 +136,12 @@ const createAssignment = async function(urlPrefix = urlPrefixTest, headers = hea
   return response.id;
 }
 module.exports.createAssignment = createAssignment;
+
+const editAssignment = async function(urlPrefix = urlPrefixTest, headers = headersTest, courseId = courseIdTest, assignmentId, assignmentData) {
+  const url = new URL(path.join(urlPrefix, `/api/v1/courses/${courseId}/assignments/${assignmentId}`));
+  const response = await fetchPut(url, headers, assignmentData);
+  return response;
+}
 
 const createAssignmentOverride = async function(urlPrefix, headers, courseId, assignmentId, data) {
   const url = new URL(path.join(urlPrefix, `api/v1/courses/${courseId}/assignments/${assignmentId}/overrides`));
@@ -674,7 +680,8 @@ module.exports.listQuizzes = listQuizzes;
 
 const processPeerGradedAssignments = async function(urlPrefix = urlPrefixTest, headers = headersTest, courseId = courseIdTest) {
   const assignmentGroups = await getAssignmentGroups(urlPrefix, headers, courseId)
-  const unprocessedId = assignmentGroups.find(e => /unprocessed/i.test(e.name)).id;
+  const unprocessedId = assignmentGroups.find(e => /\bunprocessed\b/i.test(e.name)).id;
+  const processedId = assignmentGroups.find(e => /\bprocessed\b/i.test(e.name)).id
   let unprocessedSurveys = await getAssignmentsInGroup(urlPrefix, headers, courseId, unprocessedId);
   const now = new Date();
   //unprocessedSurveys = unprocessedSurveys.filter(e => now > new Date(e.lock_at));
@@ -709,7 +716,13 @@ const processPeerGradedAssignments = async function(urlPrefix = urlPrefixTest, h
         text_comment: totalFeedback
       }
     }
-    const grade = await putGradeOrComment(urlPrefix, headers, courseId, assignmentId, studentId, gradeData);
+    await putGradeOrComment(urlPrefix, headers, courseId, assignmentId, studentId, gradeData);
+    const assignmentData = {
+      assignment: {
+        assignment_group_id: processedId
+      }
+    }
+    await editAssignment(urlPrefix, headers, courseId, currSurvey.id, assignmentData);
   }  
 }
 module.exports.processPeerGradedAssignments = processPeerGradedAssignments;

@@ -165,9 +165,9 @@ app.route('/Create-Peer-Graded').post((req, res) => {
 app.use((req, res) => res.redirect('/'));
 
 //require('./utilities').createPeerGradedAssignment()
-/*
+
 try {
   require('./utilities').processPeerGradedAssignments();
 } catch (err) {
   console.log(err);
-}*/
+}
