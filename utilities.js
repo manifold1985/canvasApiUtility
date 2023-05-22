@@ -27,7 +27,7 @@ const body = {
 function handleError(res) {
   return Error(res.status + ": " + res.statusText);
 }
-const fetchAll = async function(url, headers) {
+const fetchGetAll = async function(url, headers) {
   let page = 1;
   const output = [];
   let response = [];
@@ -65,6 +65,22 @@ const fetchPost = async function(url, headers, body) {
   }
 }
 
+const fetchPut = async function(url, headers, body) {
+  const headersPut = Object.assign({ 'Content-Type': 'application/json' }, headers);
+  let response = await fetch(url, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+    headers: headersPut
+  })
+  if (!response.ok) {
+    throw handleError(response);
+  } else {
+    console.log('X-Rate-Limit-Remaining: ', response.headers.get('X-Rate-Limit-Remaining'));
+    response = await response.json();
+    return response;
+  }
+}
+
 module.exports.fetchPost = fetchPost;
 
 ////////////////////////////////////////////////////////
@@ -77,14 +93,42 @@ function getProgress(urlPrefix, id) {
 }
 module.exports.getProgress = getProgress;
 
-const getSubmissions = async function(urlPrefix = urlPrefixTest, headers = headersTest, courseId = courseIdTest, assignmentId) {
+const getSubmissions = async function(urlPrefix = urlPrefixTest, headers = headersTest, courseId = courseIdTest, assignmentId, inclusions=[]) {
   const url = new URL(path.join(urlPrefix, `api/v1/courses/${courseId}/assignments/${assignmentId}/submissions`));
+  inclusions.forEach(e => {
+    url.searchParams.append('include[]', e);
+  });
+  let response = await fetchGetAll(url, headers);
+  return response;
+};
+
+const getQuizQuestions = async function(urlPrefix, headers, courseId, quizId) {
+  const url = new URL(path.join(urlPrefix, `/api/v1/courses/${courseId}/quizzes/${quizId}/questions`));
+  const response = await fetchGetAll(url, headers);
+  return response;
+}
+
+const getQuizSubmissions = async function(urlPrefix = urlPrefixTest, headers = headersTest, courseId = courseIdTest, quizId) {
+  const url = new URL(path.join(urlPrefix, `api/v1/courses/${courseId}/quizzes/${quizId}/submissions`));
   url.searchParams.append('include[]', 'user');
+  url.searchParams.append('include[]', 'submission');
+  url.searchParams.append('include[]', 'quiz');
   const submissions = await fetch(url, {
     headers: headers
   });
   return submissions;
 }
+
+const getQuizSubmissionQuestions = async function(urlPrefix = urlPrefixTest, headers = headersTest, quizSubmissionId) {
+  const url = new URL(path.join(urlPrefix, `/api/v1/quiz_submissions/${quizSubmissionId}/questions`));  
+   let response = await fetch(url, {
+    headers: headers
+  });
+  response = await response.json();
+  return response;
+}
+
+
 //the block for "sync assignments"
 const createAssignment = async function(urlPrefix = urlPrefixTest, headers = headersTest, courseId = courseIdTest, assignmentData) {
   const url = new URL(path.join(urlPrefix, `/api/v1/courses/${courseId}/assignments`));
@@ -103,6 +147,12 @@ const getAssignments = async function(urlPrefix, headers, courseId, page) {
   url = path.join(urlPrefix, `/api/v1/courses/${courseId}/assignments`)
   const response = await fetchPage(url, headers, page);
   return response;
+}
+
+const putGradeOrComment = async function(urlPrefix, headers, courseId, assignmentId, userId, data) {
+  url = new URL(path.join(urlPrefix, `api/v1/courses/${courseId}/assignments/${assignmentId}/submissions/${userId}`));
+  const response = await fetchPut(url, headers, data);
+  return response;  
 }
 
 const postGrades = async function(urlPrefix, headers, courseId, assignmentId, body) {
@@ -429,22 +479,16 @@ const assignRandomGrades = async (urlPrefix, headers, courseId, assignmentId) =>
 
 const getAssignmentGroups = async function(urlPrefix, headers, courseId) {
   const url = new URL(path.join(urlPrefix, `/api/v1/courses/${courseId}/assignment_groups`));
-  let response = await fetch(url, {
-    headers: headers
-  });
-  if (!response.ok) {
-    throw handleError(response);
-  } else {
-    response = await response.json();
-    return response;
-  }
+  let response = await fetchGetAll(url, headers);
+  return response;
 }
 module.exports.getAssignmentGroups = getAssignmentGroups;
 
 const getAssignmentsInGroup = async function(urlPrefix, headers, courseId, groupId) {
   const url = new URL(path.join(urlPrefix, `/api/v1/courses/${courseId}/assignment_groups/${groupId}`));
   url.searchParams.append('include[]', 'assignments');
-  headers = new fetch.Headers(headers);
+  url.searchParams.append('include[]', 'all_dates');
+  headers = new fetch.Headers(headers);  
   let response = await fetch(url.href, {
     headers: headers
   });
@@ -487,7 +531,7 @@ module.exports.createQuiz = createQuiz;
 const getStudents = async function(urlPrefix = urlPrefixTest, headers = headersTest, courseId = courseIdTest) {
   const url = new URL(path.join(urlPrefix, `api/v1/courses/${courseId}/users`));
   url.searchParams.append("enrollment_type[]", "student");
-  const response = await fetchAll(url, headers);
+  const response = await fetchGetAll(url, headers);
   return response;
 }
 
@@ -534,7 +578,7 @@ const createPeerGradedAssignment = async function(urlPrefix = urlPrefixTest, hea
       quizId: createdQuiz.id,
       postData: {
         question: {
-          question_name: "Pretation Score",
+          question_name: "Presentation Score",
           question_text: `Please assign a score to the presentation of ${name}. [score]`,
           question_type: 'multiple_dropdowns_question',
           position: 1,
@@ -553,7 +597,7 @@ const createPeerGradedAssignment = async function(urlPrefix = urlPrefixTest, hea
     }
       await createQuizQuetion(urlPrefix, headers, questionData);
       questionData.postData.question = {
-        question_name: "Pretation Feedback",
+        question_name: "Presentation Feedback",
         question_text: `Please write down your feedback on the presentation. Please use approriate language. Your feedback will be sent to ${name} non-anoynmously after the due date.`,
           question_type: 'essay_question',
           position: 2,        
@@ -628,6 +672,44 @@ const listQuizzes = async function(urlPrefix = urlPrefixTest, headers = headersT
 }
 module.exports.listQuizzes = listQuizzes;
 
-const processPeerGradedAssignment = async function(urlPrefix = urlPrefixTest, headers = headersTest, courseId = courseIdTest) {
-  
+const processPeerGradedAssignments = async function(urlPrefix = urlPrefixTest, headers = headersTest, courseId = courseIdTest) {
+  const assignmentGroups = await getAssignmentGroups(urlPrefix, headers, courseId)
+  const unprocessedId = assignmentGroups.find(e => /unprocessed/i.test(e.name)).id;
+  let unprocessedSurveys = await getAssignmentsInGroup(urlPrefix, headers, courseId, unprocessedId);
+  const now = new Date();
+  //unprocessedSurveys = unprocessedSurveys.filter(e => now > new Date(e.lock_at));
+  for(let i = 0; i < unprocessedSurveys.length; i++) {
+    const currSurvey = unprocessedSurveys[i];
+    const questions = await getQuizQuestions(urlPrefix, headers, courseId, currSurvey.quiz_id);
+    const scoreQuestion = questions.find(e => e.question_name == 'Presentation Score');
+    const feedbackQuestion = questions.find(e => e.question_name == 'Presentation Feedback');
+    const studentIdRegExp = /(?<=data-student_id=")\d+(?=")/;
+    const assignmentIdRegExp = /(?<=data-assignment_id=")\d+(?=")/;
+    const studentId = currSurvey.description.match(studentIdRegExp)[0];
+    const assignmentId = currSurvey.description.match(assignmentIdRegExp)[0];
+    const inclusions = ['submission_history', 'user', 'assignment'];
+    let submissions = await getSubmissions(urlPrefix, headers, courseId, currSurvey.id, inclusions);    
+    submissions = submissions.filter(e => e.workflow_state != 'unsubmitted');
+    let totalScore = 0;
+    let totalFeedback = "Below is the feedback from the class:\n\n";
+    const peerCount = submissions.length;
+    submissions.forEach(submission => {
+      const scoreData = submission.submission_history[0].submission_data.find(e => scoreQuestion.id.indexOf(e.question_id) != -1);
+      const currScore = Number(scoreQuestion.answers.find(e => e.id == scoreData.answer_id_for_score).text);
+      totalScore += currScore;
+      const currFeedback = submission.submission_history[0].submission_data.find(e => feedbackQuestion.id.indexOf(e.question_id) != -1).text.match(/(?<=>)[\w\W]+(?=<)/)[0];
+      totalFeedback += `${submission.user.name}: ${currFeedback}\n\n`;      
+    });
+    const averageScore = totalScore/peerCount;
+    const gradeData = {
+      submission: {
+        posted_grade: averageScore.toFixed(2)
+      },
+      comment: {
+        text_comment: totalFeedback
+      }
+    }
+    const grade = await putGradeOrComment(urlPrefix, headers, courseId, assignmentId, studentId, gradeData);
+  }  
 }
+module.exports.processPeerGradedAssignments = processPeerGradedAssignments;

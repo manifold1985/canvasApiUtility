@@ -135,15 +135,15 @@ app.route('/Assign-Grades').post((req, res) => {
     .catch(err => {
       console.log(err)
       res.redirect('/profile');
-    });  
+    });
 })
 
 app.route('/Create-Peer-Graded').post((req, res) => {
   let {
     'Create-Peer-Graded-course': courseId,
-    'Create-Peer-Graded-name' : name,
-    'Create-Peer-Graded-group' : group,
-    'Create-Peer-Graded-points' : points
+    'Create-Peer-Graded-name': name,
+    'Create-Peer-Graded-group': group,
+    'Create-Peer-Graded-points': points
   } = req.body;
   points = Number(points);
   const assignmentData = {
@@ -152,7 +152,7 @@ app.route('/Create-Peer-Graded').post((req, res) => {
       group_name: group,
       points_possible: points
     }
-  };    
+  };
   require('./utilities')
     .createPeerGradedAssignment(req.session.urlPrefix, req.session.headers, courseId, assignmentData)
     .then(() => res.redirect('/profile'))
@@ -164,4 +164,10 @@ app.route('/Create-Peer-Graded').post((req, res) => {
 
 app.use((req, res) => res.redirect('/'));
 
-//require('./utilities').createPeerGradedAssignment();
+//require('./utilities').createPeerGradedAssignment()
+/*
+try {
+  require('./utilities').processPeerGradedAssignments();
+} catch (err) {
+  console.log(err);
+}*/
