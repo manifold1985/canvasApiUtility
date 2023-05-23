@@ -1,6 +1,6 @@
 export default function(populate = false) {
-  const services = ['Check-Overdue', "Sync-Grades", "Assign-Grades", "Create-Peer-Graded"];
-  const types = [1, 2, 3, 4];
+  const services = ['Check-Overdue', "Sync-Grades", "Assign-Grades", "Create-Peer-Graded", 'Process-Peer-Graded'];
+  const types = [1, 2, 3, 4, 1];
   const listCourses = function(res, courseCell, courseDiv, service) {
     for (let i = 0; i < res.length; i++) {
       const serviceId = service;
@@ -95,9 +95,9 @@ export default function(populate = false) {
               addButton.on('click', function() {
                 makeCourseMenu(res, courseDiv, services[j], '-source');
                 makeCourseMenu(res, targetDiv, services[j], '-target');
-              });              
+              });
               targetCell.append(addButton);
-            } else if(types[j] == 3) {
+            } else if (types[j] == 3) {
               const groupCell = $(`<td id = ${id}-4></td>`)
               const selectGroup = $('<select></select>');
               selectGroup.attr('name', `${services[j]}-groups`);
@@ -107,14 +107,14 @@ export default function(populate = false) {
               const selectId = selectCourse.attr("id");
               $(`#${selectId} > option`)
                 .filter(function() {
-                return this.value == "null";
-              }).on('click', function() {
+                  return this.value == "null";
+                }).on('click', function() {
                   selectGroup.empty();
-              })
+                })
               $(`#${selectId} > option`)
                 .filter(function() {
-                return this.value != "null";
-              })
+                  return this.value != "null";
+                })
                 .on('click', function(e) {
                   fetch('/groups', {
                     method: "POST",
@@ -130,24 +130,26 @@ export default function(populate = false) {
                         selectGroup.append($(`<option value=${group.id}>${group.name}</option>`));
                       });
                     });
-                });              
-            } else if(types[j] == 4) {
+                });
+            } else if (types[j] == 4) {
               makeCourseMenu(res, courseDiv, services[j], '-course');
               const infoCell = $(`<td id=${id}-4></td>`);
               const infoDiv = $('<div class="container-fluid"></div>');
               row.append(infoCell);
               infoCell.append(infoDiv);
-              const labels = Array(3).fill();
-              const inputs = Array(3).fill();
-              const texts = ['name', 'group', 'points'];
-              const ids = Array(3).fill();
-              for(let q = 0; q < 3; q++) {
-                const inputType = texts[q] == 'points'? 'number' : 'text';
+              const options = ['name', 'group'];
+              const optionLen = options.length;
+              const labels = Array(optionLen).fill();
+              const inputs = Array(optionLen).fill();
+
+              const ids = Array(optionLen).fill();
+              for (let q = 0; q < optionLen; q++) {
+                const inputType = 'text';
                 console.log(inputType);
-                ids[q] = services[j] + '-' + texts[q];
+                ids[q] = services[j] + '-' + options[q];
                 labels[q] = $('<label></label>');
                 labels[q]
-                  .text(texts[q])
+                  .text(options[q])
                   .attr('for', ids[q])
                 inputs[q] = $('<input></input>');
                 inputs[q]
@@ -158,7 +160,7 @@ export default function(populate = false) {
                   .append(labels[q])
                   .append(inputs[q]);
               }
-            }            
+            }
             const deliver = $(`<button type='submit' class='btn btn-primary' formaction='/${id}'>Deliver</button>`);
             courseCell.append(deliver);
           };
@@ -166,7 +168,7 @@ export default function(populate = false) {
       });
     return;
   }
-  
+
   //Start populating from the database
   const form = $('form');
   const table = $('table');

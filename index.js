@@ -143,14 +143,13 @@ app.route('/Create-Peer-Graded').post((req, res) => {
     'Create-Peer-Graded-course': courseId,
     'Create-Peer-Graded-name': name,
     'Create-Peer-Graded-group': group,
-    'Create-Peer-Graded-points': points
   } = req.body;
-  points = Number(points);
   const assignmentData = {
     assignment: {
       name: name,
       group_name: group,
-      points_possible: points
+      points_possible: 5,
+      published: true
     }
   };
   require('./utilities')
@@ -162,12 +161,32 @@ app.route('/Create-Peer-Graded').post((req, res) => {
     });
 });
 
+app.route('/Process-Peer-Graded').post((req, res) => {
+  if (Array.isArray(req.body['Process-Peer-Graded'])) {
+    var courseIds = req.body['Process-Peer-Graded'];
+  } else {
+    var courseIds = [req.body['Process-Peer-Graded']];
+  }
+  for(let i = 0; i < courseIds.length; i++) {
+    const courseId = courseIds[i];
+    try {
+      require('./utilities')
+        .processPeerGradedAssignments(req.session.urlPrefix, req.session.headers, courseId)
+        .then(() => res.send('Processed peer graded assignments.'))
+        .catch(err => res.send(err));
+    } catch (err) {
+      res.send(err);
+    }
+  }
+});
+
 app.use((req, res) => res.redirect('/'));
 
 //require('./utilities').createPeerGradedAssignment()
 
+/*
 try {
   require('./utilities').processPeerGradedAssignments();
 } catch (err) {
   console.log(err);
-}
+}*/

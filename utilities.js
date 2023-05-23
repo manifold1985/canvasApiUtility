@@ -93,7 +93,7 @@ function getProgress(urlPrefix, id) {
 }
 module.exports.getProgress = getProgress;
 
-const getSubmissions = async function(urlPrefix = urlPrefixTest, headers = headersTest, courseId = courseIdTest, assignmentId, inclusions=[]) {
+const getSubmissions = async function(urlPrefix = urlPrefixTest, headers = headersTest, courseId = courseIdTest, assignmentId, inclusions = []) {
   const url = new URL(path.join(urlPrefix, `api/v1/courses/${courseId}/assignments/${assignmentId}/submissions`));
   inclusions.forEach(e => {
     url.searchParams.append('include[]', e);
@@ -120,8 +120,8 @@ const getQuizSubmissions = async function(urlPrefix = urlPrefixTest, headers = h
 }
 
 const getQuizSubmissionQuestions = async function(urlPrefix = urlPrefixTest, headers = headersTest, quizSubmissionId) {
-  const url = new URL(path.join(urlPrefix, `/api/v1/quiz_submissions/${quizSubmissionId}/questions`));  
-   let response = await fetch(url, {
+  const url = new URL(path.join(urlPrefix, `/api/v1/quiz_submissions/${quizSubmissionId}/questions`));
+  let response = await fetch(url, {
     headers: headers
   });
   response = await response.json();
@@ -158,7 +158,7 @@ const getAssignments = async function(urlPrefix, headers, courseId, page) {
 const putGradeOrComment = async function(urlPrefix, headers, courseId, assignmentId, userId, data) {
   url = new URL(path.join(urlPrefix, `api/v1/courses/${courseId}/assignments/${assignmentId}/submissions/${userId}`));
   const response = await fetchPut(url, headers, data);
-  return response;  
+  return response;
 }
 
 const postGrades = async function(urlPrefix, headers, courseId, assignmentId, body) {
@@ -490,11 +490,17 @@ const getAssignmentGroups = async function(urlPrefix, headers, courseId) {
 }
 module.exports.getAssignmentGroups = getAssignmentGroups;
 
+const createAssignmentGroup = async function(urlPrefix, headers, courseId, data) {
+  const url = new URL(path.join(urlPrefix, `/api/v1/courses/${courseId}/assignment_groups`));
+  const response = await fetchPost(url, headers, data);
+  return response;
+}
+
 const getAssignmentsInGroup = async function(urlPrefix, headers, courseId, groupId) {
   const url = new URL(path.join(urlPrefix, `/api/v1/courses/${courseId}/assignment_groups/${groupId}`));
   url.searchParams.append('include[]', 'assignments');
   url.searchParams.append('include[]', 'all_dates');
-  headers = new fetch.Headers(headers);  
+  headers = new fetch.Headers(headers);
   let response = await fetch(url.href, {
     headers: headers
   });
@@ -552,10 +558,31 @@ const createPeerGradedAssignment = async function(urlPrefix = urlPrefixTest, hea
   const assignmentGroups = await getAssignmentGroups(urlPrefix, headers, courseId);
   assignmentData.assignment.submission_type = "none";
   const groupRegEx = new RegExp(assignmentData.assignment.group_name, "i");
-  assignmentData.assignment.assignment_group_id = assignmentGroups.find(e => groupRegEx.test(e.name)).id;
+  let designatedGroup = assignmentGroups.find(e => groupRegEx.test(e.name));
+  let designatedGroupId;
+  if (!designatedGroup) {
+    const groupData = {
+      name: assignmentData.assignment.group_name,
+      group_weight: 0
+    }
+    designatedGroup = await createAssignmentGroup(urlPrefix, headers, courseId, groupData);
+    designatedGroupId = designatedGroup.id;
+  } else {
+    designatedGroupId = designatedGroup.id;
+  }
+  assignmentData.assignment.assignment_group_id = designatedGroupId;
   delete assignmentData.assignment.group_name;
-  const createdAssignmentId = await createAssignment(urlPrefix, headers, courseId, assignmentData);  
-  const unprocessedId = assignmentGroups.find(e => /unprocessed/i.test(e.name)).id;
+  const createdAssignmentId = await createAssignment(urlPrefix, headers, courseId, assignmentData);
+  try {
+    var unprocessedId = assignmentGroups.find(e => /\bunprocessed\b/i.test(e.name)).id;
+  } catch {
+    const groupData = {
+      name: "Unprocessed",
+      group_weight: 0
+    }
+    const unprocessed = await createAssignmentGroup(urlPrefix, headers, courseId, groupData);
+    var unprocessedId = unprocessed.id;
+  }
   const students = await getStudents(urlPrefix, headers, courseId);
   const quizzes = [];//for testing. Used to delete the created quizzes.
   for (let i = 0; i < students.length; i++) {
@@ -577,36 +604,36 @@ const createPeerGradedAssignment = async function(urlPrefix = urlPrefixTest, hea
       }
     }
     let createdQuiz = await createQuiz(urlPrefix, headers, courseId, quizData);
-    
+
     try {
       const questionData = {
-      courseId: courseId,
-      quizId: createdQuiz.id,
-      postData: {
-        question: {
-          question_name: "Presentation Score",
-          question_text: `Please assign a score to the presentation of ${name}. [score]`,
-          question_type: 'multiple_dropdowns_question',
-          position: 1,
-          answers: []
+        courseId: courseId,
+        quizId: createdQuiz.id,
+        postData: {
+          question: {
+            question_name: "Presentation Score",
+            question_text: `Please assign a score to the presentation of ${name}. [score]`,
+            question_type: 'multiple_dropdowns_question',
+            position: 1,
+            answers: []
+          }
         }
       }
-    }
-    for (let i = 1; i <= 5; i++) {
-      questionData.postData.question.answers.push(
-        {
-          text: i.toString(),
-          blank_id: "score",
-          weight: 0
-        }
-      )
-    }
+      for (let i = 1; i <= 5; i++) {
+        questionData.postData.question.answers.push(
+          {
+            text: i.toString(),
+            blank_id: "score",
+            weight: 0
+          }
+        )
+      }
       await createQuizQuetion(urlPrefix, headers, questionData);
       questionData.postData.question = {
         question_name: "Presentation Feedback",
         question_text: `Please write down your feedback on the presentation. Please use approriate language. Your feedback will be sent to ${name} non-anoynmously after the due date.`,
-          question_type: 'essay_question',
-          position: 2,        
+        question_type: 'essay_question',
+        position: 2,
       }
       await createQuizQuetion(urlPrefix, headers, questionData);
       const headersPut = Object.assign({ 'Content-Type': 'application/json' }, headers);
@@ -636,7 +663,7 @@ const createPeerGradedAssignment = async function(urlPrefix = urlPrefixTest, hea
     };
     try {
       const createdOverrideId = await createAssignmentOverride(urlPrefix, headers, courseId, createdQuiz.assignment_id, overrideData);
-    } catch(err) {
+    } catch (err) {
       console.log(err);
     }
     quizzes.push(createdQuiz.id);//for testing. Used to delete the created quizzes.
@@ -650,12 +677,12 @@ const createPeerGradedAssignment = async function(urlPrefix = urlPrefixTest, hea
         headers: headers
       }).then(() => console.log(`Deleted quiz ${createdQuizId}`));
     });
-    const urlDelete = new URL(path.join(urlPrefix, `/api/v1/courses/${courseId}/assignments/${createdAssignmentId}`));
+    let urlDelete = new URL(path.join(urlPrefix, `/api/v1/courses/${courseId}/assignment_groups/${designatedGroupId}`));
     fetch(urlDelete, {
       method: "DELETE",
       headers: headers
-    }).then(() => console.log(`Deleted assignment ${createdAssignmentId}`));
-  }, 30000);//End of "for testing"
+    }).then(() => console.log(`Deleted assignment group ${designatedGroupId}`));
+  }, 15000);//End of "for testing"
 }
 module.exports.createPeerGradedAssignment = createPeerGradedAssignment;
 
@@ -680,49 +707,71 @@ module.exports.listQuizzes = listQuizzes;
 
 const processPeerGradedAssignments = async function(urlPrefix = urlPrefixTest, headers = headersTest, courseId = courseIdTest) {
   const assignmentGroups = await getAssignmentGroups(urlPrefix, headers, courseId)
-  const unprocessedId = assignmentGroups.find(e => /\bunprocessed\b/i.test(e.name)).id;
-  const processedId = assignmentGroups.find(e => /\bprocessed\b/i.test(e.name)).id
+  let unprocessedId;
+  try {
+    unprocessedId = assignmentGroups.find(e => /\bunprocessed\b/i.test(e.name)).id;
+  } catch {
+    const groupData = {
+      name: "Unprocessed",
+      group_weight: 0
+    }
+    const unprocessed = await createAssignmentGroup(urlPrefix, headers, courseId, groupData);
+    unprocessedId = unprocessed.id;
+  }
+  let processedId;
+  try {
+    processedId = assignmentGroups.find(e => /\bprocessed\b/i.test(e.name)).id
+  } catch {
+    const groupData = {
+      name: "Processed",
+      group_weight: 0
+    }
+    const processed = await createAssignmentGroup(urlPrefix, headers, courseId, groupData);
+    processedId = processed.id;
+  }
   let unprocessedSurveys = await getAssignmentsInGroup(urlPrefix, headers, courseId, unprocessedId);
   const now = new Date();
   //unprocessedSurveys = unprocessedSurveys.filter(e => now > new Date(e.lock_at));
-  for(let i = 0; i < unprocessedSurveys.length; i++) {
+  for (let i = 0; i < unprocessedSurveys.length; i++) {
     const currSurvey = unprocessedSurveys[i];
     const questions = await getQuizQuestions(urlPrefix, headers, courseId, currSurvey.quiz_id);
     const scoreQuestion = questions.find(e => e.question_name == 'Presentation Score');
     const feedbackQuestion = questions.find(e => e.question_name == 'Presentation Feedback');
     const studentIdRegExp = /(?<=data-student_id=")\d+(?=")/;
     const assignmentIdRegExp = /(?<=data-assignment_id=")\d+(?=")/;
-    const studentId = currSurvey.description.match(studentIdRegExp)[0];
-    const assignmentId = currSurvey.description.match(assignmentIdRegExp)[0];
-    const inclusions = ['submission_history', 'user', 'assignment'];
-    let submissions = await getSubmissions(urlPrefix, headers, courseId, currSurvey.id, inclusions);    
-    submissions = submissions.filter(e => e.workflow_state != 'unsubmitted');
-    let totalScore = 0;
-    let totalFeedback = "Below is the feedback from the class:\n\n";
-    const peerCount = submissions.length;
-    submissions.forEach(submission => {
-      const scoreData = submission.submission_history[0].submission_data.find(e => scoreQuestion.id.indexOf(e.question_id) != -1);
-      const currScore = Number(scoreQuestion.answers.find(e => e.id == scoreData.answer_id_for_score).text);
-      totalScore += currScore;
-      const currFeedback = submission.submission_history[0].submission_data.find(e => feedbackQuestion.id.indexOf(e.question_id) != -1).text.match(/(?<=>)[\w\W]+(?=<)/)[0];
-      totalFeedback += `${submission.user.name}: ${currFeedback}\n\n`;      
-    });
-    const averageScore = totalScore/peerCount;
-    const gradeData = {
-      submission: {
-        posted_grade: averageScore.toFixed(2)
-      },
-      comment: {
-        text_comment: totalFeedback
+    if (currSurvey.description.match(studentIdRegExp)) {
+      const studentId = currSurvey.description.match(studentIdRegExp)[0];
+      const assignmentId = currSurvey.description.match(assignmentIdRegExp)[0];
+      const inclusions = ['submission_history', 'user', 'assignment'];
+      let submissions = await getSubmissions(urlPrefix, headers, courseId, currSurvey.id, inclusions);
+      submissions = submissions.filter(e => e.workflow_state != 'unsubmitted');
+      let totalScore = 0;
+      let totalFeedback = "Below is the feedback from the class:\n\n";
+      const peerCount = submissions.length;
+      submissions.forEach(submission => {
+        const scoreData = submission.submission_history[0].submission_data.find(e => scoreQuestion.id.indexOf(e.question_id) != -1);
+        const currScore = Number(scoreQuestion.answers.find(e => e.id == scoreData.answer_id_for_score).text);
+        totalScore += currScore;
+        const currFeedback = submission.submission_history[0].submission_data.find(e => feedbackQuestion.id.indexOf(e.question_id) != -1).text.match(/(?<=>)[\w\W]+(?=<)/)[0];
+        totalFeedback += `${submission.user.name}: ${currFeedback}\n\n`;
+      });
+      const averageScore = totalScore / peerCount;
+      const gradeData = {
+        submission: {
+          posted_grade: averageScore.toFixed(2)
+        },
+        comment: {
+          text_comment: totalFeedback
+        }
       }
-    }
-    await putGradeOrComment(urlPrefix, headers, courseId, assignmentId, studentId, gradeData);
-    const assignmentData = {
-      assignment: {
-        assignment_group_id: processedId
+      await putGradeOrComment(urlPrefix, headers, courseId, assignmentId, studentId, gradeData);
+      const assignmentData = {
+        assignment: {
+          assignment_group_id: processedId
+        }
       }
+      await editAssignment(urlPrefix, headers, courseId, currSurvey.id, assignmentData);
     }
-    await editAssignment(urlPrefix, headers, courseId, currSurvey.id, assignmentData);
-  }  
+  }
 }
 module.exports.processPeerGradedAssignments = processPeerGradedAssignments;
