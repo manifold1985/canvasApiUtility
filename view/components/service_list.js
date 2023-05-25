@@ -29,9 +29,31 @@ export default function(populate = false) {
     };
     courseCell.attr("colspan", "2");
   }
+  /*
   const makeCourseMenu = function(res, div, service, suffix = '') {
     const serviceId = service;
-    const select = $("<select></select>");
+    const divDropdown = $("<div class='dropdown'></div>");
+    divDropdown.attr('name', `${serviceId + suffix}`);
+    divDropdown.attr('id', `${serviceId + suffix}`);
+    div.append(divDropdown);
+    const buttonDropdown = $("<button class='btn btn-default dropdown-toggle' type='button' id='dropdownMenu1' data-toggle='dropdown' aria-haspopup='true' aria-expanded='true'>Dropdown<span class='caret'></span></button>");
+    const ulDropdown = $('<ul class="dropdown-menu" aria-labelledby="dropdownMenu1"></ul>');
+    divDropdown.append(buttonDropdown);
+    divDropdown.append(ulDropdown);
+    for (let i = 0; i < res.length; i++) {
+      const li = $("<li></li>");
+      const a = $('<a href="#">something</a>');
+      a
+        .attr("value", `${res[i].id}`)
+        //.text(`${res[i].name} (${res[i].course_code}, ${res[i].id})`);
+      li.append(a);
+      ulDropdown.append(li);
+    }
+    return divDropdown;
+  }*/ //Tried to use the dropdown menu in Bootstrap. Doesn't work so far.   
+  const makeCourseMenu = function(res, div, service, suffix = '') {
+    const serviceId = service;
+    const select = $("<select class='container-fluid'></select>");
     select.attr('name', `${serviceId + suffix}`);
     select.attr('id', `${serviceId + suffix}`);
     div.append(select);
@@ -145,7 +167,6 @@ export default function(populate = false) {
               const ids = Array(optionLen).fill();
               for (let q = 0; q < optionLen; q++) {
                 const inputType = 'text';
-                console.log(inputType);
                 ids[q] = services[j] + '-' + options[q];
                 labels[q] = $('<label></label>');
                 labels[q]
