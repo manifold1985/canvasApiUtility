@@ -30,13 +30,14 @@
       import greeting from './components/greeting.js';
       import serviceList from './components/service_list.js';
       $(document).ready(function() {
-        serviceList();
+        const myMQL = window.matchMedia('(min-width: 600px)');
+        serviceList(myMQL);
         fetch('/user')
           .then(res => res.json())
           .then(profile => {
-            greeting(profile);
+            greeting(profile, myMQL);
             sessionStorage.setItem('profile', JSON.stringify(profile));
-            serviceList(true);
+            serviceList(myMQL, true);
           })        
       })      
     </script>    
