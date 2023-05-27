@@ -17,7 +17,7 @@ export default (profile, mQL) => {
       }
       $('#greeting').append(` You are in the ${profile.envir} environment. Please pick your services.`);
     } else {
-      $('#greeting').html("Sorry, cannot retrieve your profile. Please check your input. Also, make sure your access token has not expired or changed. <br> <span class='text-danger'>" + profile + "</span> <br> Redirect to the homepage after 10 seconds.");
+      $('#greeting').html("Sorry, your profile cannot be retrieved. Please check your input. Also, make sure your access token has not expired or changed. <br> <span class='text-danger'>" + profile + "</span> <br> Redirect to the homepage after 10 seconds.");
       setTimeout(() => window.location.replace("/"), 10000);
     }
   }

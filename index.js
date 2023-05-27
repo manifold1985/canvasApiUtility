@@ -9,14 +9,6 @@ const headersTest = {
   Authorization: `Bearer ${myToken}`,
   Accept: "application/json+canvas-string-ids"
 }
-//const mongoose = require('mongoose');
-
-//const mongoURI = process.env['MONGO_URI'];
-/*
-mongoose
-  .connect(mongoURI)
-  .then(() => console.log("Database connection succeeded."))
-  .catch(err => console.log(err));*/
 
 const app = express();
 
@@ -31,7 +23,7 @@ app.listen(port, () => {
 });
 
 app.use((req, res, next) => {
-  console.log((new Date()).toLocaleString('en-US', { timeZone: "America/New_York" }), req.method, req.path);
+  console.log((new Date()).toLocaleString('en-US', {timeZone: "America/New_York"}), req.method, req.path);
   next();
 })
 app.use(express.static(staticPath));
@@ -47,9 +39,11 @@ app.use(session({
 }));
 
 app.use(bodyParser.text());
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.urlencoded({extended: false}));
 
 app.route('/').get((req, res) => res.sendFile(homepage));
+
+app.route('/pass').post((req, res) => res.json(process.env['CANVAS_API_TOKEN_TEST']));
 
 app.route('/profile').post((req, res) => {
   req.session.headers = {
@@ -96,8 +90,6 @@ app.route('/subscribe').post((req, res) => {
   require('./utilities').subscribe(req)
     .then(() => res.redirect('/profile'));
 })
-
-app.route('/pass').post((req, res) => res.json(process.env['CANVAS_API_TOKEN_TEST']));
 
 app.route('/Check-Overdue').post((req, res) => {
   const courses = req.body["Check-Overdue"];

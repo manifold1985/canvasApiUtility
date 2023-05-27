@@ -212,8 +212,8 @@ export default function(mQL, populate = false) {
         populateCourses(serviceId);
       }
     };
-    form.append("<button type='submit' class='btn btn-primary btn-block animate__animated animate__zoomIn' style='margin-top: 12pt; margin-bottom: 12pt'><i class='fas fa-paper-plane'></i> Submit</button>")
-    $('form').on('submit', () => {
+    form.append("<button id='subscribe_button' type='submit' class='btn btn-primary btn-block animate__animated animate__zoomIn' style='margin-top: 12pt; margin-bottom: 12pt'><i class='fas fa-paper-plane'></i> Submit</button>")
+    $('#subscribe_button').on('click', () => {
       sessionStorage.setItem('submitted', 'true');
     });
   } else {

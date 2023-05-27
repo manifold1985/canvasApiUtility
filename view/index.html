@@ -47,23 +47,23 @@
     </main>
     <script>      
       $(document).ready(function() {
-        fetch('/pass',{
-          method: "POST"
-        }).then(token => token.json())
-          .then(token => $("#token").val(token));
-
-        if (localStorage.getItem('checked')) {
-          $('#'+ localStorage.getItem('checked')).attr('checked',true);
+        if (localStorage.getItem('envir')) {
+          $('#'+ localStorage.getItem('envir')).attr('checked',true);
         } else {
-          $('#test').attr('checked',true);
+          $('#test').attr('checked',true);          
         }
-        localStorage.removeItem('checked');
-        
-        $('form').on('submit', (e) => {
+        if($('#test').attr('checked')) {
+          fetch('/pass', {
+            method: "POST"
+          }).then(token => token.json())
+            .then(token => $("#token").val(token));
+        }
+        localStorage.removeItem('envir');        
+        $('form').on('submit', e => {
           e.preventDefault();
-          for(let input of $('.envir')) {
-            if(input.checked) {
-              localStorage.setItem('checked', $(input).attr('id'));
+          for(let envir of $('.envir')) {
+            if(envir.checked) {
+              localStorage.setItem('envir', envir.id);
             }            
           }
           $('#primary').addClass('animate__animated animate__slideOutLeft');
