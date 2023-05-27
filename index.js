@@ -9,15 +9,26 @@ const headersTest = {
   Authorization: `Bearer ${myToken}`,
   Accept: "application/json+canvas-string-ids"
 }
-
 const app = express();
-
 const port = 3000;
 const staticPath = path.join(__dirname, 'view');
 const homepage = path.join(__dirname, 'view/index.html');
 const profilePage = path.join(__dirname, 'view', 'profile.html');
 const sessionSecret = process.env['SESSION_SECRET'];
-
+const errorHandler = function(res, error) {
+  res.send(error);
+}
+const makeSafe = function(fn, req, res, processor, errorHandler) {
+  return function() {
+    fn()
+      .then(response => {
+      processor(req, res, response);
+      })
+      .catch(error => {
+        errorHandler(res, error);
+      });
+  }
+}
 app.listen(port, () => {
   console.log("Your server started at", port);
 });
@@ -45,25 +56,28 @@ app.route('/').get((req, res) => res.sendFile(homepage));
 
 app.route('/pass').post((req, res) => res.json(process.env['CANVAS_API_TOKEN_TEST']));
 
-app.route('/profile').post((req, res) => {
-  req.session.headers = {
-    Authorization: `Bearer ${req.body.token}`,
-    Accept: "application/json+canvas-string-ids"
-  };
-  req.session.token = req.body.token;
-  req.session.envir = req.body.envir;
-  if (req.body.envir == 'production') {
-    req.session.urlPrefix = 'https://canvas.instructure.com';
-  } else {
-    req.session.urlPrefix = 'https://canvas.' + req.body.envir + '.instructure.com';
-  }
-  res.sendFile(profilePage);
-}).get((req, res) => {
-  if (!req.session.token) {
-    return res.redirect('/')
-  };
-  res.sendFile(profilePage)
-});
+app.route('/profile')
+  .post((req, res) => {
+    req.session.headers = {
+      Authorization: `Bearer ${req.body.token}`,
+      Accept: "application/json+canvas-string-ids"
+    };
+    req.session.token = req.body.token;
+    req.session.envir = req.body.envir;
+    if (req.body.envir == 'production') {
+      req.session.urlPrefix = 'https://canvas.instructure.com';
+    } else {
+      req.session.urlPrefix = 'https://canvas.' + req.body.envir + '.instructure.com';
+    }
+    res.sendFile(profilePage);
+  })
+  .get((req, res) => {
+    if (!req.session.token) {
+      res.redirect('/')
+    } else {
+    res.sendFile(profilePage);
+    }
+  });
 
 app.route('/user').get((req, res) => {
   if (!req.session.token) {
