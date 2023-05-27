@@ -30,7 +30,7 @@
       import greeting from './components/greeting.js';
       import serviceList from './components/service_list.js';
       $(document).ready(function() {
-        const myMQL = window.matchMedia('(min-width: 600px)');
+        const myMQL = window.matchMedia('(min-width: 640px)');
         serviceList(myMQL);
         fetch('/user')
           .then(res => res.json())

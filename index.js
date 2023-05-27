@@ -110,10 +110,10 @@ app.route('/Check-Overdue').post((req, res) => {
 })
 
 app.route('/Sync-Grades').post((req, res) => {
-  /*const [source, target] = [req.body["Sync-Grades-source"], req.body["Sync-Grades-target"]];
+  const [source, target] = [req.body["Sync-Grades-source"], req.body["Sync-Grades-target"]];
   require('./utilities').syncGrades(req.session.urlPrefix, req.session.headers, source, target).then(() => {
     console.log('Sync Grades for ', source, target);
-  });*/
+  });
   res.send("Sync Grades");
 })
 
