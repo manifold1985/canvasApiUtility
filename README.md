@@ -3,7 +3,7 @@
   Canvas by Instructure is a widely adopted Learning Management System (LMS) across the US. It offers a REST API to the educators who want to create their own ways to solve problems. The project utilizes this API to extend the functionality of Canvas.
 ## Usage
 
-<a href='https://canvas-api-utility.manifold1985.repl.co' target='_blank'>A Demo on Replit: </a>
+<a href='https://canvas-api-utility.manifold1985.repl.co' target='_blank'>A Demo on Replit</a>:
 This is a web-based application. No installation is needed. Use the link to access the application hosted on Replit.com.
 
 ---
