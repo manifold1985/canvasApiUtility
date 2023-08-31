@@ -1,7 +1,5 @@
 require("dotenv").config();
 const mongoose = require('mongoose');
-
-
 const mongoURI = process.env['MONGO_URI'];
 mongoose
   .connect(mongoURI)
@@ -39,16 +37,24 @@ const userSchema = new Schema ({
       type: serviceSchema,
       default: () => ({}) //populate the subdocument with nullish default values
     },
-    'Service-2': {
+    'Sync-Grades': {
       type: serviceSchema,
       default: () => ({})
     },
-    'Service-3': {
+    'Assign-Grades': {
       type: serviceSchema,
       default: () => ({})
-    }
+    },
+    "Create-Peer-Graded": {
+      type: serviceSchema,
+      default: () => ({})
+    }, 
+    'Process-Peer-Graded': {
+      type: serviceSchema,
+      default: () => ({})
+    }      
   }
-})
+});
 
 const User = model('canvasUsers', userSchema);
 

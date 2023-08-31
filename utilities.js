@@ -257,7 +257,7 @@ const createConversation = function(urlPrefix = canvasUrl, headers, recipientId,
   };
 */
 //190000001883402 190000001927022
-const checkOverdue = async (sendMessage, courseId = courses[0], urlPrefix = canvasUrl, headers = headersBackup) => {//take away the "sendMessage" switch
+const checkOverdue = async (sendMessage, courseId = courses[0], urlPrefix = canvasUrl, headers = headersBackup, closing) => {//take away the "sendMessage" switch
   const now = new Date();
   const users = new Map();
   const url = path.join(urlPrefix, `/api/v1/courses/${courseId}/assignments?include[]=all_dates`);
@@ -269,12 +269,12 @@ const checkOverdue = async (sendMessage, courseId = courses[0], urlPrefix = canv
     currAssignments = currAssignments.filter(entry => {
       const dates = entry.all_dates.filter(entry => entry.base)[0];
       const dueAt = new Date(dates.due_at);
-      return dayDiff(now, dueAt) > 0 && dayDiff(now, dueAt) < 9 && !entry.omit_from_final_grade;//fix
+      return dayDiff(now, dueAt) > 0 && dayDiff(now, dueAt) < closing && !entry.omit_from_final_grade;//fix
     });
     for (let assignmentCount = 0; assignmentCount < currAssignments.length; assignmentCount++) {
       const assignment = currAssignments[assignmentCount];
       const pointsPossible = assignment.points_possible;
-      const restDays = 9 - dayDiff(now, new Date(assignment.all_dates[0].due_at));
+      const restDays = closing - dayDiff(now, new Date(assignment.all_dates[0].due_at));
       const url = path.join(urlPrefix, `/api/v1/courses/${courseId}/assignments/${assignment.id}/submissions?include[]=user`);
       let currSubmissions;
       let pageSub = 1;
@@ -682,7 +682,7 @@ const createPeerGradedAssignment = async function(urlPrefix = urlPrefixTest, hea
       method: "DELETE",
       headers: headers
     }).then(() => console.log(`Deleted assignment group ${designatedGroupId}`));
-  }, 15000);//End of "for testing"
+  }, 600000);//End of "for testing"
 }
 module.exports.createPeerGradedAssignment = createPeerGradedAssignment;
 
