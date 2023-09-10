@@ -285,7 +285,7 @@ const checkOverdue = async (sendMessage, courseId = courses[0], urlPrefix = canv
           return submission.user.name != 'Test Student' && submission.workflow_state != 'submitted' && submission.grade_matches_current_submission && !(submission.score >= pointsPossible);
         })
         const messageTemplate = function(assignmentName, restDays, userStatus) {
-          return `\n${assignmentName}, ${userStatus}, ${restDays} days left before the closing.`
+          return `\n${assignmentName}, ${userStatus}, ${restDays} days left.`
         }
         currSubmissions.forEach(submission => {
           const userName = submission.user.name.split(' ').slice(0, 1).join('');
