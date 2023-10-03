@@ -666,9 +666,10 @@ const createPeerGradedAssignment = async function(urlPrefix = urlPrefixTest, hea
     } catch (err) {
       console.log(err);
     }
-    quizzes.push(createdQuiz.id);//for testing. Used to delete the created quizzes.
+    //quizzes.push(createdQuiz.id);//for testing. Used to delete the created quizzes.
   }
   //for testing. Used to delete the created quizzes.
+  /*
   setTimeout(() => {
     quizzes.forEach(createdQuizId => {
       const urlDelete = new URL(path.join(urlPrefix, `/api/v1/courses/${courseId}/quizzes/${createdQuizId}`));
@@ -682,7 +683,7 @@ const createPeerGradedAssignment = async function(urlPrefix = urlPrefixTest, hea
       method: "DELETE",
       headers: headers
     }).then(() => console.log(`Deleted assignment group ${designatedGroupId}`));
-  }, 600000);//End of "for testing"
+  }, 600000);//End of "for testing"*/
 }
 module.exports.createPeerGradedAssignment = createPeerGradedAssignment;
 
