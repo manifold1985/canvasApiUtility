@@ -106,7 +106,8 @@ app.route('/subscribe').post((req, res) => {
 })
 
 app.route('/Check-Overdue').post((req, res) => {
-  const courses = req.body["Check-Overdue"];
+  const courses = Array.isArray(req.body["Check-Overdue"])?req.body["Check-Overdue"]:[req.body["Check-Overdue"]];
+  
   courses.forEach(course => {
     require('./utilities').checkOverdue(true, course, req.session.urlPrefix, req.session.headers, 6).then(() => {
       console.log('Check overdue for ', course);

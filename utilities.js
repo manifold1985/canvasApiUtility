@@ -265,11 +265,17 @@ const checkOverdue = async (sendMessage, courseId = courses[0], urlPrefix = canv
   let pageAssig = 1;
   let result = [];
   while (currAssignments = await fetchPage(url, headers, pageAssig)) {
-    pageAssig++;
+    pageAssig++;    
     currAssignments = currAssignments.filter(entry => {
-      const dates = entry.all_dates.filter(entry => entry.base)[0];
-      const dueAt = new Date(dates.due_at);
-      return dayDiff(now, dueAt) > 0 && dayDiff(now, dueAt) < closing && !entry.omit_from_final_grade;//fix
+      const dates = entry.all_dates.filter(entry =>{
+        return entry.base != null;
+      })[0];
+      if(dates != null) {
+        const dueAt = new Date(dates.due_at);
+        return dayDiff(now, dueAt) > 0 && dayDiff(now, dueAt) < closing && !entry.omit_from_final_grade;//fix
+      } else {
+        return false;
+      }
     });
     for (let assignmentCount = 0; assignmentCount < currAssignments.length; assignmentCount++) {
       const assignment = currAssignments[assignmentCount];

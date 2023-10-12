@@ -69,7 +69,7 @@ export default function(mQL, populate = false) {
   }
   if (mQL.matches) {
     if (!populate) {
-      const form = $('<form action="/subscribe" method="post" class="invisible"></form>');
+      const form = $('<form action="/subscribe" method="post" class="invisible"></form>'); 
       const table = $('<table class="table table-bordered table-striped table-hover"><tr><th>Service</th><th>Subscribe</th><th colspan = "2">Courses</th></tr></table>');//Define the service list table headers.
       form.append(table);
       $('#service-list').append(form);//#service-list is a <div> element in profile.html.
@@ -182,7 +182,7 @@ export default function(mQL, populate = false) {
                     .append(inputs[q]);
                 }
               }
-              const deliver = $(`<button type='submit' class='btn btn-primary' formaction='/${id}'>Deliver</button>`);
+              const deliver = $(`<button type='submit' class='btn btn-primary' formaction='/${id}'>Deliver</button>`);              
               courseCell.append(deliver);
             };
           };
@@ -192,6 +192,7 @@ export default function(mQL, populate = false) {
   
     //Start populating from the database
     const form = $('form');
+    
     const table = $('table');
     const profile = JSON.parse(sessionStorage.getItem('profile'));
     const currServices = profile.services;
