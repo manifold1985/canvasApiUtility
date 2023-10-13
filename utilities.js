@@ -738,7 +738,7 @@ const processPeerGradedAssignments = async function(urlPrefix = urlPrefixTest, h
   }
   let unprocessedSurveys = await getAssignmentsInGroup(urlPrefix, headers, courseId, unprocessedId);
   const now = new Date();
-  //unprocessedSurveys = unprocessedSurveys.filter(e => now > new Date(e.lock_at));
+  unprocessedSurveys = unprocessedSurveys.filter(e => now > new Date(e.lock_at));
   for (let i = 0; i < unprocessedSurveys.length; i++) {
     const currSurvey = unprocessedSurveys[i];
     const questions = await getQuizQuestions(urlPrefix, headers, courseId, currSurvey.quiz_id);
