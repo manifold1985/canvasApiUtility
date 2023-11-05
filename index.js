@@ -15,6 +15,7 @@ const staticPath = path.join(__dirname, 'view');
 const homepage = path.join(__dirname, 'view/index.html');
 const profilePage = path.join(__dirname, 'view', 'profile.html');
 const sessionSecret = process.env['SESSION_SECRET'];
+const courseIdForTest = process.env['COURSE_ID'];
 const errorHandler = function(res, error) {
   res.send(error);
 }
@@ -187,6 +188,14 @@ app.route('/Process-Peer-Graded').post((req, res) => {
   }
 });
 
+app.route('/Sort-Into-Groups').post((req, res) => {
+  if (Array.isArray(req.body['Sort-Into-Groups'])) {
+    var courseIds = req.body['Sort-Into-Groups'];
+  } else {
+    var courseIds = [req.body['Sort-Into-Groups']];
+  }
+})
+
 app.use((req, res) => res.redirect('/'));
 
 //require('./utilities').createPeerGradedAssignment()
@@ -197,3 +206,4 @@ try {
 } catch (err) {
   console.log(err);
 }*/
+require('./utilities').sortIntoGroups();

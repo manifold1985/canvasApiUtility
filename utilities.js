@@ -9,7 +9,7 @@ const headersTest = {
   Authorization: `Bearer ${myToken}`,
   Accept: "application/json+canvas-string-ids"
 }
-const courseIdTest = '190000001927048';
+const courseIdTest = process.env['COURSE_ID'];
 //const headersBackup = headers; //check for delete
 
 const sendMessage = false;
@@ -782,3 +782,19 @@ const processPeerGradedAssignments = async function(urlPrefix = urlPrefixTest, h
   }
 }
 module.exports.processPeerGradedAssignments = processPeerGradedAssignments;
+
+const sortIntoGroups = async function(urlPrefix = urlPrefixTest, headers = headersTest, courseId = courseIdTest) {
+  const groupToId = new Map(); 
+  const assignmentGroups = await getAssignmentGroups(urlPrefix, headers, courseId);
+  assignmentGroups.forEach(group => {
+    const names = group.name.split('/');
+    names.forEach(name => {
+      groupToId.set(name, group.id);
+    })
+  })
+  let page = 1;
+  
+  console.log(groupToId);
+}
+
+module.exports.sortIntoGroups = sortIntoGroups;

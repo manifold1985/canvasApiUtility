@@ -1,6 +1,6 @@
 export default function(mQL, populate = false) {
-  const services = ['Check-Overdue', "Sync-Grades", "Assign-Grades", "Create-Peer-Graded", 'Process-Peer-Graded'];
-  const types = [1, 2, 3, 4, 1];
+  const services = ['Check-Overdue', "Sync-Grades", "Assign-Grades", "Create-Peer-Graded", 'Process-Peer-Graded', 'Sort-Into-Groups'];
+  const types = [1, 2, 3, 4, 1,1];
   const listCourses = function(res, courseCell, courseDiv, service) {
     for (let i = 0; i < res.length; i++) {
       const serviceId = service;
