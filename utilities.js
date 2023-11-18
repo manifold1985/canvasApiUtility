@@ -150,7 +150,7 @@ const createAssignmentOverride = async function(urlPrefix, headers, courseId, as
 }
 
 const getAssignments = async function(urlPrefix, headers, courseId, page) {
-  url = path.join(urlPrefix, `/api/v1/courses/${courseId}/assignments`)
+  url = new URL(path.join(urlPrefix, `/api/v1/courses/${courseId}/assignments`));
   const response = await fetchPage(url, headers, page);
   return response;
 }
@@ -792,9 +792,35 @@ const sortIntoGroups = async function(urlPrefix = urlPrefixTest, headers = heade
       groupToId.set(name, group.id);
     })
   })
+  const nonGradedId = groupToId.get('Non-graded');
   let page = 1;
-  
-  console.log(groupToId);
+  while(currAssignments = await getAssignments(urlPrefix, headers, courseId, page)) {
+    const arr = currAssignments; 
+    setTimeout(() => {
+      let index = 0;
+      const interval = setInterval(() => {        
+        const assignment = arr[index];
+        const groupName = assignment.name.split(' ')[0];
+        let groupId = groupToId.get(groupName);
+        if (!groupId) {
+          groupId = nonGradedId;
+        }
+        const assignmentData = {
+          assignment: {
+            assignment_group_id: groupId
+          }
+        }
+        editAssignment(urlPrefix, headers, courseId, assignment.id, assignmentData)
+          //.then(res=>console.log(res.name));      
+        if(index >= arr.length - 1) {
+          clearInterval(interval);
+        } else {
+          index++;
+        }
+      }, 500);
+    }, page*1000);
+    page++;
+  }  
 }
 
 module.exports.sortIntoGroups = sortIntoGroups;

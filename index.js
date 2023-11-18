@@ -194,16 +194,25 @@ app.route('/Sort-Into-Groups').post((req, res) => {
   } else {
     var courseIds = [req.body['Sort-Into-Groups']];
   }
+  const helper = function(i) {
+    if (i < courseIds.length) {
+      try {
+        require('./utilities')
+          .sortIntoGroups(req.session.urlPrefix, req.session.headers, courseIds[i])
+          .then(() => {
+            helper(i+1);
+          })
+          .catch(err => {
+            console.log(err);
+            res.send(err);
+          });
+      } catch (err) {
+        res.send(err);
+      }    
+    }
+  }
+  helper(0);
+  res.send('Sort into Groups.');
 })
 
 app.use((req, res) => res.redirect('/'));
-
-//require('./utilities').createPeerGradedAssignment()
-
-/*
-try {
-  require('./utilities').processPeerGradedAssignments();
-} catch (err) {
-  console.log(err);
-}*/
-require('./utilities').sortIntoGroups();
