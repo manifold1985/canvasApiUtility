@@ -794,6 +794,71 @@ const sortIntoGroups = async function(urlPrefix = urlPrefixTest, headers = heade
   })
   const nonGradedId = groupToId.get('Non-graded');
   let page = 1;
+
+  //The following design can prevent rate limit exceeding. But it takes too long to run.
+  /*
+  const pageHelper = async function(page) {
+    const assignmentHelper = async function(i, arr) {
+      if (i < arr.length) {
+        const assignment = arr[i];
+        const groupName = assignment.name.split(' ')[0];
+        let groupId = groupToId.get(groupName);
+        if (!groupId) {
+          groupId = nonGradedId;
+        }
+        const assignmentData = {
+          assignment: {
+            assignment_group_id: groupId
+          }
+        }
+        const edited = await editAssignment(urlPrefix, headers, courseId, assignment.id, assignmentData);
+        if(edited) {
+          const done = await pageHelper(i+1, arr);
+          if(done) {
+            return true;
+          }
+        }
+      } else {
+        return true;
+      }
+    }
+    const currAssignments = await getAssignments(urlPrefix, headers, courseId, page);
+    if(currAssignments) {
+      const processed = await assignmentHelper(0, currAssignments);
+      if(processed) {
+        pageHelper(page + 1);
+      }
+    }
+  }
+  pageHelper(1);
+  */
+  const pageHelper = async function(page) {
+    const currAssignments = await getAssignments(urlPrefix, headers, courseId, page);
+    if(currAssignments) {
+      let index = 0;
+      //Can I wrap the following with a promise?
+      const interval = setInterval(() => {        
+        const assignment = arr[index];
+        const groupName = assignment.name.split(' ')[0];
+        let groupId = groupToId.get(groupName);
+        if (!groupId) {
+          groupId = nonGradedId;
+        }
+        const assignmentData = {
+          assignment: {
+            assignment_group_id: groupId
+          }
+        }
+        editAssignment(urlPrefix, headers, courseId, assignment.id, assignmentData);
+        if(index >= arr.length - 1) {
+          clearInterval(interval);
+        } else {
+          index++;
+        }
+      }, 100);
+    }    
+  }
+  
   while(currAssignments = await getAssignments(urlPrefix, headers, courseId, page)) {
     const arr = currAssignments; 
     setTimeout(() => {
@@ -810,8 +875,7 @@ const sortIntoGroups = async function(urlPrefix = urlPrefixTest, headers = heade
             assignment_group_id: groupId
           }
         }
-        editAssignment(urlPrefix, headers, courseId, assignment.id, assignmentData)
-          //.then(res=>console.log(res.name));      
+        editAssignment(urlPrefix, headers, courseId, assignment.id, assignmentData);
         if(index >= arr.length - 1) {
           clearInterval(interval);
         } else {
@@ -820,7 +884,7 @@ const sortIntoGroups = async function(urlPrefix = urlPrefixTest, headers = heade
       }, 500);
     }, page*1000);
     page++;
-  }  
+  }
 }
 
 module.exports.sortIntoGroups = sortIntoGroups;
