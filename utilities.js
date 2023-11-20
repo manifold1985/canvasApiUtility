@@ -265,12 +265,12 @@ const checkOverdue = async (sendMessage, courseId = courses[0], urlPrefix = canv
   let pageAssig = 1;
   let result = [];
   while (currAssignments = await fetchPage(url, headers, pageAssig)) {
-    pageAssig++;    
+    pageAssig++;
     currAssignments = currAssignments.filter(entry => {
-      const dates = entry.all_dates.filter(entry =>{
+      const dates = entry.all_dates.filter(entry => {
         return entry.base != null;
       })[0];
-      if(dates != null) {
+      if (dates != null) {
         const dueAt = new Date(dates.due_at);
         return dayDiff(now, dueAt) > 0 && dayDiff(now, dueAt) < closing && !entry.omit_from_final_grade;//fix
       } else {
@@ -784,7 +784,7 @@ const processPeerGradedAssignments = async function(urlPrefix = urlPrefixTest, h
 module.exports.processPeerGradedAssignments = processPeerGradedAssignments;
 
 const sortIntoGroups = async function(urlPrefix = urlPrefixTest, headers = headersTest, courseId = courseIdTest) {
-  const groupToId = new Map(); 
+  const groupToId = new Map();
   const assignmentGroups = await getAssignmentGroups(urlPrefix, headers, courseId);
   assignmentGroups.forEach(group => {
     const names = group.name.split('/');
@@ -793,97 +793,49 @@ const sortIntoGroups = async function(urlPrefix = urlPrefixTest, headers = heade
     })
   })
   const nonGradedId = groupToId.get('Non-graded');
-  let page = 1;
 
-  //The following design can prevent rate limit exceeding. But it takes too long to run.
-  /*
   const pageHelper = async function(page) {
-    const assignmentHelper = async function(i, arr) {
-      if (i < arr.length) {
-        const assignment = arr[i];
-        const groupName = assignment.name.split(' ')[0];
-        let groupId = groupToId.get(groupName);
-        if (!groupId) {
-          groupId = nonGradedId;
-        }
-        const assignmentData = {
-          assignment: {
-            assignment_group_id: groupId
-          }
-        }
-        const edited = await editAssignment(urlPrefix, headers, courseId, assignment.id, assignmentData);
-        if(edited) {
-          const done = await pageHelper(i+1, arr);
-          if(done) {
-            return true;
-          }
-        }
-      } else {
-        return true;
-      }
-    }
+    console.log(courseId, page);//delete
     const currAssignments = await getAssignments(urlPrefix, headers, courseId, page);
-    if(currAssignments) {
-      const processed = await assignmentHelper(0, currAssignments);
-      if(processed) {
-        pageHelper(page + 1);
+    if (currAssignments) {
+      let index = 0;
+      const arr = currAssignments;
+      const promise = new Promise((resolve, reject) => {
+        const interval = setInterval(() => {
+          const assignment = arr[index];
+          const groupName = assignment.name.split(' ')[0];
+          let groupId = groupToId.get(groupName);
+          if (!groupId) {
+            groupId = nonGradedId;
+          }
+          const assignmentData = {
+            assignment: {
+              assignment_group_id: groupId
+            }
+          }
+          editAssignment(urlPrefix, headers, courseId, assignment.id, assignmentData);
+          if (index >= arr.length - 1) {
+            clearInterval(interval);
+            resolve(true);
+          } else {
+            index++;
+          }
+        }, 100);
+      });
+      const proceed = await promise;
+      if (proceed) {
+        const done = await pageHelper(page + 1);
+        if (done) {
+          return true;
+        }
       }
+    } else {
+      return true;
     }
   }
-  pageHelper(1);
-  */
-  const pageHelper = async function(page) {
-    const currAssignments = await getAssignments(urlPrefix, headers, courseId, page);
-    if(currAssignments) {
-      let index = 0;
-      //Can I wrap the following with a promise?
-      const interval = setInterval(() => {        
-        const assignment = arr[index];
-        const groupName = assignment.name.split(' ')[0];
-        let groupId = groupToId.get(groupName);
-        if (!groupId) {
-          groupId = nonGradedId;
-        }
-        const assignmentData = {
-          assignment: {
-            assignment_group_id: groupId
-          }
-        }
-        editAssignment(urlPrefix, headers, courseId, assignment.id, assignmentData);
-        if(index >= arr.length - 1) {
-          clearInterval(interval);
-        } else {
-          index++;
-        }
-      }, 100);
-    }    
-  }
-  
-  while(currAssignments = await getAssignments(urlPrefix, headers, courseId, page)) {
-    const arr = currAssignments; 
-    setTimeout(() => {
-      let index = 0;
-      const interval = setInterval(() => {        
-        const assignment = arr[index];
-        const groupName = assignment.name.split(' ')[0];
-        let groupId = groupToId.get(groupName);
-        if (!groupId) {
-          groupId = nonGradedId;
-        }
-        const assignmentData = {
-          assignment: {
-            assignment_group_id: groupId
-          }
-        }
-        editAssignment(urlPrefix, headers, courseId, assignment.id, assignmentData);
-        if(index >= arr.length - 1) {
-          clearInterval(interval);
-        } else {
-          index++;
-        }
-      }, 500);
-    }, page*1000);
-    page++;
+  const complete = await pageHelper(1);
+  if (complete) {
+    return true;
   }
 }
 
