@@ -23,9 +23,10 @@ If you log in successfuly, you will be led to the **Profile** page.
 - To subscrib to the periodical service, select the subjects, check the **Subscribe** checkbox, then click the **Submit** button.
 
 ### Services
-- **Check Overdue**: Send a remainder to each student who has an overdue assignment, with a countdown to the last day of assignment availability.
-- **Sync Grades**: Synchonize the grades all assignments from source course to the target course. If the assignment doesn't exist yet in the target source, a clone will be created automatically.
-- **Assign Grades** (*Demo*): Assign grades to the target assignments according to the specified formula. *As of now, a random score will be assigned.*
-- **Create Peer Graded**: Create an assignment with the designated name under the designated group. Meanwhile, a batch of peer feedback surveys will be generated, each of which is assigned to the entire class except for the student being reviewed. All the generated surveys will be placed under the *Unprocessed* group (if the group doesn't exist yet, it will be created.)
-- **Process Peer Graded**: Process the peer feedbacks past the last day of survey availability. The average of the scores will be calculated and assigned to the assignment of the student being reviewed, and the feedback comments will be sent to the student non-anoymously.<br /> 
+- **Check Overdue**: Sending a remainder to each student who has an overdue assignment, with a countdown to the last day of assignment availability.
+- **Sync Grades**: Synchonizing the grades all assignments from source course to the target course. If the assignment doesn't exist yet in the target source, a clone will be created automatically.
+- **Assign Grades** (*Demo*): Assigning grades to the target assignments according to the specified formula. *As of now, a random score will be assigned.*
+- **Create Peer Graded**: Creating an assignment with the designated name under the designated group. Meanwhile, a batch of peer feedback surveys will be generated, each of which is assigned to the entire class except for the student being reviewed. All the generated surveys will be placed under the *Unprocessed* group (if the group doesn't exist yet, it will be created.)
+- **Process Peer Graded**: Processing the peer feedbacks past the last day of survey availability. The average of the scores will be calculated and assigned to the assignment of the student being reviewed, and the feedback comments will be sent to the student non-anoymously.<br /> 
 (*Remark: the servie of **Create Peer Graded** and **Process Peer Graded** must be used in tandem for the application to recognize the assignments properly.*)
+- **Sort into Groups**: Sorting the assignments into groups according to the first word in the title.
