@@ -1,7 +1,9 @@
 require('dotenv').config();
 const path = require('path');
 const cron = require('node-cron');
-const fetch = require('node-fetch');
+//const fetch = require('node-fetch');
+const fetch = (...args) =>
+  import('node-fetch').then(({ default: fetch }) => fetch(...args));
 //const canvasUrl = 'https://canvas.instructure.com';//check for delete
 const urlPrefixTest = 'https://canvas.test.instructure.com'
 const myToken = process.env['CANVAS_API_TOKEN_TEST'];
@@ -56,7 +58,7 @@ const fetchPost = async function(url, headers, body) {
     body: JSON.stringify(body),
     headers: headersPost
   })
-  if (!response.ok) {
+  if (!response.ok) {    
     throw handleError(response);
   } else {
     console.log('X-Rate-Limit-Remaining: ', response.headers.get('X-Rate-Limit-Remaining'));
@@ -72,10 +74,10 @@ const fetchPut = async function(url, headers, body) {
     body: JSON.stringify(body),
     headers: headersPut
   })
-  if (!response.ok) {
+  if (!response.ok) {    
     throw handleError(response);
   } else {
-    console.log('Put X-Rate-Limit-Remaining: ', response.headers.get('X-Rate-Limit-Remaining'));
+    console.log('Put X-Rate-Limit-Remaining: ', response.headers.get('X-Rate-Limit-Remaining'));//delete
     response = await response.json();
     return response;
   }
@@ -139,8 +141,12 @@ module.exports.createAssignment = createAssignment;
 
 const editAssignment = async function(urlPrefix = urlPrefixTest, headers = headersTest, courseId = courseIdTest, assignmentId, assignmentData) {
   const url = new URL(path.join(urlPrefix, `/api/v1/courses/${courseId}/assignments/${assignmentId}`));
-  const response = await fetchPut(url, headers, assignmentData);
-  return response;
+  try {
+    const response = await fetchPut(url, headers, assignmentData);
+    return response;
+  } catch(err) {
+    throw err;
+  }
 }
 
 const createAssignmentOverride = async function(urlPrefix, headers, courseId, assignmentId, data) {
@@ -793,14 +799,12 @@ const sortIntoGroups = async function(urlPrefix = urlPrefixTest, headers = heade
     })
   })
   const nonGradedId = groupToId.get('Non-graded');
-
-  const pageHelper = async function(page) {
-    console.log(courseId, page);//delete
+  const pageHelper = async function(page) {    
     const currAssignments = await getAssignments(urlPrefix, headers, courseId, page);
     if (currAssignments) {
       let index = 0;
       const arr = currAssignments;
-      const promise = new Promise((resolve, reject) => {
+      const promise = new Promise((resolve, reject) => {        
         const interval = setInterval(() => {
           const assignment = arr[index];
           const groupName = assignment.name.split(' ')[0];
@@ -812,8 +816,14 @@ const sortIntoGroups = async function(urlPrefix = urlPrefixTest, headers = heade
             assignment: {
               assignment_group_id: groupId
             }
+          }          
+          const editHelper = function() {
+            editAssignment(urlPrefix, headers, courseId, assignment.id, assignmentData)
+              .catch(() => {
+                setTimeout(editHelper, 1000);
+              });                         
           }
-          editAssignment(urlPrefix, headers, courseId, assignment.id, assignmentData);
+          editHelper();
           if (index >= arr.length - 1) {
             clearInterval(interval);
             resolve(true);

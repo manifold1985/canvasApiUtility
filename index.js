@@ -216,3 +216,5 @@ app.route('/Sort-Into-Groups').post((req, res) => {
 })
 
 app.use((req, res) => res.redirect('/'));
+
+//require('./utilities').sortIntoGroups();
