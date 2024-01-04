@@ -512,7 +512,7 @@ const getAssignmentsInGroup = async function(urlPrefix, headers, courseId, group
   const url = new URL(path.join(urlPrefix, `/api/v1/courses/${courseId}/assignment_groups/${groupId}`));
   url.searchParams.append('include[]', 'assignments');
   url.searchParams.append('include[]', 'all_dates');
-  headers = new fetch.Headers(headers);
+  
   let response = await fetch(url.href, {
     headers: headers
   });
