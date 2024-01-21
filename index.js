@@ -10,7 +10,7 @@ const headersTest = {
   Accept: "application/json+canvas-string-ids"
 }
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 const staticPath = path.join(__dirname, 'view');
 const homepage = path.join(__dirname, 'view/index.html');
 const profilePage = path.join(__dirname, 'view', 'profile.html');
@@ -31,7 +31,7 @@ const makeSafe = function(fn, req, res, processor, errorHandler) {
   }
 }
 app.listen(port, () => {
-  console.log("Your server started at", port);
+  console.log(`The server is listening at port ${port}.`);
 });
 
 app.use((req, res, next) => {
@@ -178,8 +178,8 @@ app.route('/Process-Peer-Graded').post((req, res) => {
   for(let i = 0; i < courseIds.length; i++) {
     const courseId = courseIds[i];
     try {
-      require('./src/controllers/processPeerGraded')//require('./utilities')
-        .processPeerGraded/*Assignments*/(req.session.urlPrefix, req.session.headers, courseId)
+      require('./src/controllers/processPeerGraded')
+        .processPeerGraded(req.session.urlPrefix, req.session.headers, courseId)
         .then(() => res.send('Processed peer graded assignments.'))
     } catch (err) {
       console.log(err);
@@ -216,5 +216,3 @@ app.route('/Sort-Into-Groups').post((req, res) => {
 })
 
 app.use((req, res) => res.redirect('/'));
-
-//require('./utilities').sortIntoGroups();
