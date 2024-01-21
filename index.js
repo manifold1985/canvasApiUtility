@@ -178,11 +178,11 @@ app.route('/Process-Peer-Graded').post((req, res) => {
   for(let i = 0; i < courseIds.length; i++) {
     const courseId = courseIds[i];
     try {
-      require('./utilities')
-        .processPeerGradedAssignments(req.session.urlPrefix, req.session.headers, courseId)
+      require('./src/controllers/processPeerGraded')//require('./utilities')
+        .processPeerGraded/*Assignments*/(req.session.urlPrefix, req.session.headers, courseId)
         .then(() => res.send('Processed peer graded assignments.'))
-        .catch(err => res.send(err));
     } catch (err) {
+      console.log(err);
       res.send(err);
     }
   }
