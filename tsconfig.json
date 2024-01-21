@@ -6,9 +6,12 @@
     "moduleResolution": "node",
     "sourceMap": true,
     "outDir": "dist",
-    "allowJs": true
+    "allowJs": true,
+    "removeComments": true,
+    "noEmitOnError": true,
+    "strict": true
   },
   "lib": ["es2015"],
   "include": ["**/*"],
-  "exclude": ["dist"]
+  "exclude": ["dist", "node_modules"]
 }

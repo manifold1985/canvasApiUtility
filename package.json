@@ -4,9 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "tsc && node dist/index.js",
-    "lint": "eslint . --ext .ts"
+    "lint": "eslint . --ext .ts",
+    "mon": "nodemon dist/index.js",
+    "start": "nodemon index.js",
+    "test": "jest",    
+    "tsStart": "tsc && node dist/index.js",    
+    "watch": "tsc -w"
   },
   "keywords": [],
   "author": "",
@@ -19,16 +22,16 @@
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "express-session": "^1.17.3",
-    "index.js": "^0.0.3",
     "mongoose": "^6.8.2",
     "node-cron": "^3.0.2",
-    "node-fetch": "^3.2.6",
-    "nodemon": "^3.0.1"
+    "node-fetch": "^3.2.6"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^6.19.0",
     "@typescript-eslint/parser": "^6.19.0",
     "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.1",
     "typescript": "^5.3.3"
   }
 }
