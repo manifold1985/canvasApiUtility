@@ -104,11 +104,14 @@ const getSubmissions = async function(urlPrefix = urlPrefixTest, headers = heade
   return response;
 };
 
+module.exports.getSubmissions = getSubmissions;
 const getQuizQuestions = async function(urlPrefix, headers, courseId, quizId) {
   const url = new URL(path.join(urlPrefix, `/api/v1/courses/${courseId}/quizzes/${quizId}/questions`));
   const response = await fetchGetAll(url, headers);
   return response;
 }
+
+module.exports.getQuizQuestions = getQuizQuestions;
 
 const getQuizSubmissions = async function(urlPrefix = urlPrefixTest, headers = headersTest, courseId = courseIdTest, quizId) {
   const url = new URL(path.join(urlPrefix, `api/v1/courses/${courseId}/quizzes/${quizId}/submissions`));
@@ -149,6 +152,8 @@ const editAssignment = async function(urlPrefix = urlPrefixTest, headers = heade
   }
 }
 
+module.exports.editAssignment = editAssignment;
+
 const createAssignmentOverride = async function(urlPrefix, headers, courseId, assignmentId, data) {
   const url = new URL(path.join(urlPrefix, `api/v1/courses/${courseId}/assignments/${assignmentId}/overrides`));
   const response = await fetchPost(url, headers, data);
@@ -166,6 +171,8 @@ const putGradeOrComment = async function(urlPrefix, headers, courseId, assignmen
   const response = await fetchPut(url, headers, data);
   return response;
 }
+
+module.exports.putGradeOrComment = putGradeOrComment;
 
 const postGrades = async function(urlPrefix, headers, courseId, assignmentId, body) {
   const url = path.join(urlPrefix, `api/v1/courses/${courseId}/assignments/${assignmentId}/submissions/update_grades`);
@@ -507,6 +514,7 @@ const createAssignmentGroup = async function(urlPrefix, headers, courseId, data)
   const response = await fetchPost(url, headers, data);
   return response;
 }
+module.exports.createAssignmentGroup = createAssignmentGroup;
 
 const getAssignmentsInGroup = async function(urlPrefix, headers, courseId, groupId) {
   const url = new URL(path.join(urlPrefix, `/api/v1/courses/${courseId}/assignment_groups/${groupId}`));
@@ -523,6 +531,8 @@ const getAssignmentsInGroup = async function(urlPrefix, headers, courseId, group
     return response.assignments;
   }
 }
+
+module.exports.getAssignmentsInGroup = getAssignmentsInGroup
 
 const assignGrades = async function(urlPrefix, headers, courseId, groupId) {
   const assignments = await getAssignmentsInGroup(urlPrefix, headers, courseId, groupId);
