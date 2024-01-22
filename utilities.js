@@ -1,4 +1,6 @@
 require('dotenv').config();
+const {myHeaders, generateBaseUrl} = require('./src/config');
+
 const path = require('path');
 const cron = require('node-cron');
 //const fetch = require('node-fetch');
@@ -14,8 +16,6 @@ const headersTest = {
 const courseIdTest = process.env['COURSE_ID'];
 //const headersBackup = headers; //check for delete
 
-const sendMessage = false;
-const schedule = "20 57 2 * * *";
 const userId = "190000005530740";
 let url = path.join(urlPrefixTest, 'api/v1/conversations');
 
@@ -346,16 +346,19 @@ const checkOverdue = async (sendMessage, courseId = courses[0], urlPrefix = canv
 };
 module.exports.checkOverdue = checkOverdue;
 
-module.exports.checkOverdueCron = function() {
+const checkOverdueCron = function() {
+  const sendMessage = true;
+  const schedule = "0 20 * * 1,3,5";
+  const courses = ['190000002000968', '190000002001004', '190000002000979'];
+  const baseUrl = generateBaseUrl();
   const job = cron.schedule(schedule, function() {//remove the "schedule" & use the selected time of the user
-    console.log('Scheduling checkOverdueCron. sendMessage: ', sendMessage);
-    for (let i = 0; i < courses.length; i++)
-      checkOverdue(sendMessage, courses[i]);
-  }, {
-    timezone: "America/New_York" //use the timezone of the individual user
-  })
+    for (let i = 0; i < courses.length; i++) {
+      checkOverdue(sendMessage, courses[i], baseUrl, myHeaders, 7);
+    }
+  }, {timezone: "America/New_York"});//use the timezone of the individual user
 }
-
+module.exports.checkOverdueCron = checkOverdueCron;
+checkOverdueCron();
 
 //Helper functions
 

@@ -1,14 +1,21 @@
 require('dotenv').config();
-console.log(process.env);
-const tokenName = 'CANVAS_API_TOKEN' + process.env.ENVIRONMENT;
-const myEnv = Object.create(process.env); 
+const myEnv = Object.create(process.env);
+const tokenName = 'CANVAS_API_TOKEN' + myEnv.ENVIRONMENT; 
 const myToken = myEnv[tokenName];
 const myHeaders = {
   Authorization: `Bearer ${myToken}`,
   Accept: "application/json+canvas-string-ids"
 }
-console.log(myHeaders);
+const generateBaseUrl = () => {
+  const currEnvironment = myEnv.ENVIRONMENT.slice(1);
+  if (currEnvironment == 'production') {
+    return 'https://canvas.instructure.com';
+  } else {
+    return 'https://canvas.' + currEnvironment.toLowerCase() + '.instructure.com';
+  }
+}
 
-exports = {
+module.exports = {
   myHeaders: myHeaders,
+  generateBaseUrl: generateBaseUrl
 }
