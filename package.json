@@ -7,8 +7,8 @@
     "lint": "eslint . --ext .ts",
     "mon": "nodemon dist/index.js",
     "start": "nodemon index.js",
-    "test": "jest",    
-    "tsStart": "tsc && node dist/index.js",    
+    "test": "jest",
+    "tsStart": "tsc && node dist/index.js",
     "watch": "tsc -w"
   },
   "keywords": [],
@@ -22,7 +22,7 @@
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "express-session": "^1.17.3",
-    "mongoose": "^6.8.2",
+    "mongoose": "^8.1.0",
     "node-cron": "^3.0.2",
     "node-fetch": "^3.2.6"
   },
