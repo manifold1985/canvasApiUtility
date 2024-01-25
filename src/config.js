@@ -8,7 +8,8 @@ const myHeaders = {
 }
 const generateBaseUrl = () => {
   const currEnvironment = myEnv.ENVIRONMENT.slice(1);
-  if (currEnvironment == 'production') {
+  console.log(currEnvironment);
+  if (/production/i.test(currEnvironment)) {
     return 'https://canvas.instructure.com';
   } else {
     return 'https://canvas.' + currEnvironment.toLowerCase() + '.instructure.com';

@@ -353,7 +353,7 @@ const checkOverdueCron = function() {
   const baseUrl = generateBaseUrl();
   const job = cron.schedule(schedule, function() {//remove the "schedule" & use the selected time of the user
     for (let i = 0; i < courses.length; i++) {
-      checkOverdue(sendMessage, courses[i], baseUrl, myHeaders, 7);
+      checkOverdue(sendMessage, courses[i], baseUrl, myHeaders, 6);
     }
   }, {timezone: "America/New_York"});//use the timezone of the individual user
 }
