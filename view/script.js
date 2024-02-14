@@ -1,5 +1,4 @@
 $(document).ready(function () {
-  console.log("script");
   if (localStorage.getItem("envir")) {
     $("#" + localStorage.getItem("envir")).attr("checked", true);
   } else {
