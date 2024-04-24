@@ -92,16 +92,20 @@ exports.processPeerGraded = async function (urlPrefix, headers, courseId) {
       );
       let totalScore = 0;
       let totalFeedback = "Below is the feedback from the class:\n\n";
-      const peerCount = submissions.length;
+      let peerCount = submissions.length;
       submissions.forEach((submission) => {
         const scoreData = submission.submission_history[0].submission_data.find(
           (e) => scoreQuestion.id.indexOf(e.question_id) != -1,
         );
-        const currScore = Number(
-          scoreQuestion.answers.find(
-            (e) => e.id == scoreData.answer_id_for_score,
-          ).text,
+        const rawScore = scoreQuestion.answers.find(
+          (e) => e.id == scoreData.answer_id_for_score,
         );
+        if (rawScore) {
+          var currScore = Number(rawScore.text);
+        } else {
+          var currScore = 0;
+          peerCount--;
+        }
         totalScore += currScore;
         const feedbackMatch = submission.submission_history[0].submission_data
           .find((e) => feedbackQuestion.id.indexOf(e.question_id) != -1)
