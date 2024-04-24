@@ -107,7 +107,7 @@ exports.processPeerGraded = async function (urlPrefix, headers, courseId) {
           .find((e) => feedbackQuestion.id.indexOf(e.question_id) != -1)
           .text.match(/(?<=>)[\w\W]+(?=<)/);
 
-        const currFeedback = feedbackMatch ? feedbackMach[0] : "N/A";
+        const currFeedback = feedbackMatch ? feedbackMatch[0] : "N/A";
         totalFeedback += `${submission.user.name}: ${currFeedback}\n\n`;
       });
       const averageScore = totalScore / peerCount;
